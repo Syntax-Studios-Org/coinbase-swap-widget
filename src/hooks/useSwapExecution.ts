@@ -1,0 +1,181 @@
+import { useMutation } from "@tanstack/react-query";
+import {
+  useEvmAddress,
+  useSendEvmTransaction,
+  useSignEvmTypedData,
+} from "@coinbase/cdp-hooks";
+import {
+  concat,
+  numberToHex,
+  size,
+  type Hex,
+  encodeFunctionData,
+  erc20Abi,
+} from "viem";
+import type {
+  SwapQuoteResponse,
+  AllowanceIssue,
+  Permit2Data,
+} from "@/types/swap";
+import {
+  createBasePublicClient,
+  waitForTransactionConfirmation,
+} from "@/lib/transaction-helper";
+
+interface SwapExecutionParams {
+  swapQuote: SwapQuoteResponse;
+  fromTokenAddress: string;
+  network: string;
+}
+
+const getChainId = (network: string): number => {
+  switch (network.toLowerCase()) {
+    case "base":
+      return 8453;
+    default:
+      return 8453;
+  }
+};
+
+export const useSwapExecution = () => {
+  const evmAddress = useEvmAddress();
+  const sendTransaction = useSendEvmTransaction();
+  const signTypedData = useSignEvmTypedData();
+  const publicClient = createBasePublicClient();
+
+  const handleTokenApproval = async (
+    allowanceIssue: AllowanceIssue,
+    fromTokenAddress: string,
+    network: string,
+  ) => {
+    const currentAllowance = BigInt(allowanceIssue.currentAllowance);
+    const requiredAllowance = BigInt(allowanceIssue.requiredAllowance);
+    const spender = allowanceIssue.spender;
+
+    if (currentAllowance >= requiredAllowance) return;
+
+    console.log(
+      "Sending ERC-20 approval for",
+      requiredAllowance.toString(),
+      "tokens...",
+    );
+
+    const approveData = encodeFunctionData({
+      abi: erc20Abi,
+      functionName: "approve",
+      args: [spender as `0x${string}`, requiredAllowance],
+    });
+
+    const approvalTx = await sendTransaction({
+      evmAccount: evmAddress!,
+      network: network as any,
+      transaction: {
+        to: fromTokenAddress as `0x${string}`,
+        data: approveData,
+        value: 0n,
+        gas: 100000n,
+        maxFeePerGas: 10000000n,
+        maxPriorityFeePerGas: 1000000n,
+        chainId: getChainId(network),
+        type: "eip1559" as const,
+      },
+    });
+
+    await waitForTransactionConfirmation(
+      publicClient,
+      approvalTx.transactionHash,
+      "ERC-20 approval",
+    );
+  };
+
+  const signPermit2Message = async (permit2Data: Permit2Data): Promise<Hex> => {
+    console.log("Signing Permit2 message...");
+
+    const signResult = await signTypedData({
+      evmAccount: evmAddress!,
+      typedData: {
+        domain: permit2Data.eip712.domain,
+        types: permit2Data.eip712.types,
+        primaryType: permit2Data.eip712.primaryType,
+        message: permit2Data.eip712.message,
+      },
+    });
+
+    const signature = signResult.signature as Hex;
+    const signatureLength = numberToHex(size(signature), {
+      signed: false,
+      size: 32,
+    });
+
+    return concat([signatureLength, signature]);
+  };
+
+  const executeSwap = async ({
+    swapQuote,
+    fromTokenAddress,
+    network,
+  }: SwapExecutionParams) => {
+    if (!evmAddress) {
+      throw new Error("Wallet not connected");
+    }
+
+    if (swapQuote.issues?.allowance) {
+      await handleTokenApproval(
+        swapQuote.issues.allowance,
+        fromTokenAddress,
+        network,
+      );
+    }
+
+    let txData = swapQuote.transaction.data as Hex;
+    if (swapQuote.permit2?.eip712) {
+      const permitSignature = await signPermit2Message(swapQuote.permit2);
+      txData = concat([txData, permitSignature]);
+    }
+
+    console.log("Executing swap...");
+    const swapTx = await sendTransaction({
+      evmAccount: evmAddress,
+      network: network as any,
+      transaction: {
+        to: swapQuote.transaction.to as `0x${string}`,
+        data: txData,
+        value: BigInt(swapQuote.transaction.value),
+        gas: swapQuote.transaction.gas
+          ? BigInt(swapQuote.transaction.gas)
+          : 500000n,
+        maxFeePerGas: swapQuote.transaction.gasPrice
+          ? BigInt(swapQuote.transaction.gasPrice)
+          : 10000000n,
+        maxPriorityFeePerGas: swapQuote.transaction.gasPrice
+          ? BigInt(
+              Math.min(
+                Math.floor(Number(swapQuote.transaction.gasPrice) * 0.1),
+                1000000000,
+              ),
+            )
+          : 1000000000n,
+        chainId: getChainId(network),
+        type: "eip1559" as const,
+      },
+    });
+
+    await waitForTransactionConfirmation(
+      publicClient,
+      swapTx.transactionHash,
+      "Swap transaction",
+    );
+
+    return { transactionHash: swapTx.transactionHash };
+  };
+
+  return useMutation({
+    mutationFn: executeSwap,
+    onSuccess: (data) => {
+      console.log("Swap completed successfully:", data.transactionHash);
+    },
+    onError: (error) => {
+      console.error("Swap failed:", error);
+    },
+  });
+};
