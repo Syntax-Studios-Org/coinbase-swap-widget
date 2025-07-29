@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { DollarSign, ArrowRight } from "lucide-react";
+import { DollarSign, AlertCircle } from "lucide-react";
 import {
   Button,
   Input,
@@ -10,8 +10,12 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  LoadingSpinner,
 } from "@/components/ui";
-import { SUPPORTED_NETWORKS } from "@/constants/tokens";
+import { ErrorMessage } from "@/components/common/ErrorMessage";
+import { useUSDCOnramp } from "@/hooks/useOnramp";
+import { ONRAMP_CONFIG, SUPPORTED_FIAT_CURRENCIES } from "@/constants/config";
+import type { SupportedFiatCurrency } from "@/types/onramp";
 
 interface OnrampModalProps {
   onClose: () => void;
@@ -19,110 +23,181 @@ interface OnrampModalProps {
 
 export function OnrampModal({ onClose }: OnrampModalProps) {
   const [usdAmount, setUsdAmount] = useState("");
-  const [selectedCrypto, setSelectedCrypto] = useState("USDC");
-  const [network, setNetwork] = useState("base");
+  const [selectedCurrency, setSelectedCurrency] =
+    useState<SupportedFiatCurrency>("USD");
+  const [amountError, setAmountError] = useState("");
 
-  const tokens = Object.values(
-    SUPPORTED_NETWORKS[network as keyof typeof SUPPORTED_NETWORKS],
-  );
-  const estimatedCrypto =
-    selectedCrypto === "USDC"
-      ? usdAmount
-      : selectedCrypto === "ETH"
-        ? (parseFloat(usdAmount || "0") / 2500).toFixed(6)
-        : usdAmount;
+  const { openUSDCOnramp, state } = useUSDCOnramp();
 
-  const handleBuyCrypto = () => {
-    console.log("Buy crypto:", { usdAmount, selectedCrypto, network });
-    onClose();
+  const validateAmount = (amount: string): boolean => {
+    const numAmount = parseFloat(amount);
+
+    if (isNaN(numAmount) || numAmount <= 0) {
+      setAmountError("Please enter a valid amount");
+      return false;
+    }
+
+    if (numAmount < ONRAMP_CONFIG.minAmount) {
+      setAmountError(`Minimum amount is $${ONRAMP_CONFIG.minAmount}`);
+      return false;
+    }
+
+    if (numAmount > ONRAMP_CONFIG.maxAmount) {
+      setAmountError(`Maximum amount is $${ONRAMP_CONFIG.maxAmount}`);
+      return false;
+    }
+
+    setAmountError("");
+    return true;
+  };
+
+  const handleBuyCrypto = async () => {
+    if (!validateAmount(usdAmount)) {
+      return;
+    }
+
+    try {
+      await openUSDCOnramp(parseFloat(usdAmount), selectedCurrency);
+      // Don't close the modal immediately - let user see the loading state
+      // The modal will close when they return from Coinbase Pay
+    } catch (error) {
+      console.error("Failed to open onramp:", error);
+      // Error is handled by the hook and displayed in the UI
+    }
   };
 
   return (
     <div className="space-y-6">
+      {/* Error Display */}
+      {state.error && <ErrorMessage message={state.error} />}
+
+      {/* Amount Input */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Amount (USD)</label>
+        <label className="text-sm font-medium">Amount</label>
         <div className="relative">
           <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             type="number"
-            placeholder="100"
+            placeholder={`${ONRAMP_CONFIG.minAmount} - ${ONRAMP_CONFIG.maxAmount}`}
             value={usdAmount}
-            onChange={(e) => setUsdAmount(e.target.value)}
+            onChange={(e) => {
+              setUsdAmount(e.target.value);
+              if (amountError) setAmountError("");
+            }}
             className="pl-10"
+            disabled={state.isLoading}
+            min={ONRAMP_CONFIG.minAmount}
+            max={ONRAMP_CONFIG.maxAmount}
           />
+        </div>
+        {amountError && (
+          <div className="flex items-center space-x-1 text-sm text-red-600">
+            <AlertCircle className="h-3 w-3" />
+            <span>{amountError}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Currency Selection */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Currency</label>
+        <Select
+          value={selectedCurrency}
+          onValueChange={(value) =>
+            setSelectedCurrency(value as SupportedFiatCurrency)
+          }
+          disabled={state.isLoading}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.entries(SUPPORTED_FIAT_CURRENCIES).map(
+              ([code, currency]) => (
+                <SelectItem key={code} value={code}>
+                  {currency.name} ({currency.symbol})
+                </SelectItem>
+              ),
+            )}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Network Display (Fixed to Base) */}
+      <div className="space-y-2">
+        <label className="text-sm font-medium">Network</label>
+        <div className="p-3 bg-muted rounded-md">
+          <div className="flex items-center space-x-2">
+            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
+            <span className="text-sm font-medium">Base Mainnet</span>
+          </div>
         </div>
       </div>
 
+      {/* Asset Display (Fixed to USDC) */}
       <div className="space-y-2">
-        <label className="text-sm font-medium">Network</label>
-        <Select value={network} onValueChange={setNetwork}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="base">Base</SelectItem>
-          </SelectContent>
-        </Select>
+        <label className="text-sm font-medium">You'll Receive</label>
+        <div className="p-3 bg-muted rounded-md">
+          <div className="flex items-center space-x-2">
+            <img
+              src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png"
+              alt="USDC"
+              className="w-4 h-4 rounded-full"
+            />
+            <span className="text-sm font-medium">USDC (USD Coin)</span>
+          </div>
+        </div>
       </div>
 
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Receive</label>
-        <Select value={selectedCrypto} onValueChange={setSelectedCrypto}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {tokens.map((token) => (
-              <SelectItem key={token.address} value={token.symbol}>
-                <div className="flex items-center space-x-2">
-                  {token.logoUrl && (
-                    <img
-                      src={token.logoUrl}
-                      alt={token.symbol}
-                      className="w-4 h-4 rounded-full"
-                    />
-                  )}
-                  <span>{token.symbol}</span>
-                </div>
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {usdAmount && (
-        <div className="p-4 bg-muted rounded-lg">
-          <div className="flex items-center justify-between">
-            <div className="text-center">
-              <div className="text-lg font-semibold">${usdAmount}</div>
-              <div className="text-sm text-muted-foreground">USD</div>
+      {/* Amount Summary */}
+      {usdAmount && !amountError && (
+        <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
+          <div className="text-center">
+            <div className="text-lg font-semibold">
+              ${usdAmount} {selectedCurrency}
             </div>
-            <ArrowRight className="h-4 w-4 text-muted-foreground" />
-            <div className="text-center">
-              <div className="text-lg font-semibold">≈ {estimatedCrypto}</div>
-              <div className="text-sm text-muted-foreground">
-                {selectedCrypto}
-              </div>
+            <div className="text-sm text-muted-foreground">
+              You'll receive USDC on Base network
             </div>
           </div>
         </div>
       )}
 
+      {/* Action Buttons */}
       <div className="flex space-x-3">
-        <Button variant="outline" onClick={onClose} className="flex-1">
+        <Button
+          variant="outline"
+          onClick={onClose}
+          className="flex-1"
+          disabled={state.isLoading}
+        >
           Cancel
         </Button>
         <Button
           onClick={handleBuyCrypto}
           className="flex-1"
-          disabled={!usdAmount || parseFloat(usdAmount) <= 0}
+          disabled={
+            !usdAmount ||
+            parseFloat(usdAmount) <= 0 ||
+            !!amountError ||
+            state.isLoading
+          }
         >
-          Continue to Payment
+          {state.isLoading ? (
+            <div className="flex items-center space-x-2">
+              <LoadingSpinner size="sm" />
+              <span>Opening Coinbase Pay...</span>
+            </div>
+          ) : (
+            "Continue to Coinbase Pay"
+          )}
         </Button>
       </div>
 
-      <div className="text-xs text-muted-foreground text-center">
-        Onramp powered by Coinbase. Rates are estimates and may vary.
+      {/* Footer Info */}
+      <div className="text-xs text-muted-foreground text-center space-y-1">
+        <div>Powered by Coinbase Pay</div>
+        <div>Secure • Fast • Trusted</div>
       </div>
     </div>
   );
