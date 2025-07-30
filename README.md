@@ -1,13 +1,29 @@
-# Coinbase CDP Swap Widget
+# Coinbase CDP Swap & Onramp Widget
 
-A production-ready token swap interface built with the Coinbase Developer Platform (CDP). This application demonstrates secure, efficient token swapping with proper transaction confirmation and comprehensive type safety.
+A production-ready swap and onramp widget built with Coinbase Developer Platform (CDP) that enables seamless token swapping and crypto purchasing on Base network. Features a modern dark theme design with Coinbase Sans fonts and comprehensive error handling.
 
 ## Features
 
-- **Secure Token Swapping**: Implements precise allowance approvals instead of unlimited token permissions
-- **CDP Integration**: Built on Coinbase Developer Platform hooks for authentication and transaction management
-- **Email Authentication**: Secure OTP-based authentication flow
-- **Real-time Price Quotes**: Live token swap pricing with automatic updates
+### 🔄 Token Swapping
+- **Multi-token Support**: Swap between ETH, USDC, DAI, WETH and other supported tokens on Base
+- **Real-time Quotes**: Live pricing with automatic refresh every 10 seconds
+- **Smart Routing**: Optimal swap routes for best prices and lowest fees
+- **Slippage Control**: Customizable slippage tolerance settings
+- **Transaction Review**: Detailed transaction preview with fee breakdown
+- **Precise Balance Handling**: Accurate MAX button without rounding errors
+
+### 💳 Onramp Integration
+- **Buy Crypto**: Purchase crypto directly with fiat currency
+- **Coinbase Integration**: Seamless integration with Coinbase onramp services
+- **Multiple Payment Methods**: Support for various payment options
+- **Instant Availability**: Quick crypto delivery to your wallet
+- **Session Management**: Secure onramp session handling
+
+### 🔐 Security & Authentication
+- **Email Authentication**: Simple OTP-based wallet access
+- **Secure Approvals**: Precise token allowances instead of unlimited permissions
+- **Transaction Confirmation**: Proper on-chain confirmation with timeouts
+- **Error Handling**: Comprehensive error states using swap quote issues
 
 ## Architecture
 
@@ -35,11 +51,20 @@ src/
 
 ### Key Components
 
-- **SwapWidget**: Main container managing swap state and quote fetching
-- **SwapForm**: Token selection and amount input interface
-- **SwapExecution**: Secure transaction execution with proper confirmations
-- **TokenSelector**: Multi-network token selection with balance display
-- **AuthForm**: Email and OTP authentication interface
+#### Swap Components
+- **SwapWidget**: Main swap interface with modular design
+- **SwapInput**: Reusable input component with error styling and precise balance handling
+- **TokenSelector**: Token selection modal with search and balance display
+- **ReviewTransactionModal**: Complete transaction review with success/failure states
+
+#### Onramp Components
+- **OnrampButton**: Entry point for crypto purchases with gradient border
+- **OnrampModal**: Integrated purchasing flow with session management
+
+#### UI Components
+- **ErrorState**: Standardized error display for insufficient balance
+- **ConnectWalletModal**: Email and OTP authentication interface
+- **Custom UI Library**: Button, Input, Dialog components with dark theme
 
 ## Getting Started
 
@@ -111,9 +136,25 @@ Dynamic network support with proper chain ID validation and RPC endpoint configu
 
 ## API Routes
 
+### Swap APIs
 - `POST /api/swap/quote` - Get swap price quotes with liquidity and fee information
 - `POST /api/swap/create-quote` - Create executable swap quotes with transaction data
 - `POST /api/balances` - Fetch token balances for connected wallets
+
+### Onramp APIs
+- `POST /api/onramp/session` - Create and manage onramp sessions for crypto purchases
+
+## Supported Networks & Tokens
+
+### Networks
+- **Base**: Primary network for swaps and onramp
+
+### Tokens
+- **ETH**: Ethereum
+- **USDC**: USD Coin
+- **DAI**: Dai Stablecoin
+- **WETH**: Wrapped Ethereum
+- *Additional tokens configurable in `/src/constants/tokens.ts`*
 
 ## Tech Stack
 

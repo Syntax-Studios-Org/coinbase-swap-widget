@@ -43,10 +43,7 @@ export function OnrampButton() {
         </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Buy USDC on Base</DialogTitle>
-        </DialogHeader>
-        <OnrampModal onClose={handleClose} />
+        <OnrampModal isOpen={isOpen} onClose={handleClose} />
       </DialogContent>
     </Dialog>
   );

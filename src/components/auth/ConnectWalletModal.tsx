@@ -145,13 +145,13 @@ export function ConnectWalletModal({
           )}
         </div>
 
-        <div className="relative mt-6">
+        <div className="relative mt-6 -mx-6">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-white/10" />
           </div>
           <div className="relative flex justify-center">
             <span className="bg-[#141519] px-3 text-xs text-white/50 border border-white/10 rounded-full">
-              you’re allowing to:
+              you're allowing to:
             </span>
           </div>
         </div>

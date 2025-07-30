@@ -1,206 +1,279 @@
 "use client";
 
 import { useState } from "react";
-import { DollarSign, AlertCircle } from "lucide-react";
 import {
   Button,
-  Input,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  LoadingSpinner,
 } from "@/components/ui";
-import { ErrorMessage } from "@/components/common/ErrorMessage";
-import { useUSDCOnramp } from "@/hooks/useOnramp";
-import { ONRAMP_CONFIG, SUPPORTED_FIAT_CURRENCIES } from "@/constants/config";
-import type { SupportedFiatCurrency } from "@/types/onramp";
+import { useOnramp } from "@/hooks/useOnramp";
+import { BASE_TOKENS } from "@/constants/tokens";
 import Image from "next/image";
+import { NETWORKS } from "@/constants/config";
 
 interface OnrampModalProps {
+  isOpen: boolean;
   onClose: () => void;
 }
 
-export function OnrampModal({ onClose }: OnrampModalProps) {
-  const [usdAmount, setUsdAmount] = useState("");
-  const [selectedCurrency, setSelectedCurrency] =
-    useState<SupportedFiatCurrency>("USD");
-  const [amountError, setAmountError] = useState("");
+export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
+  const [amount, setAmount] = useState("");
+  const [selectedAsset, setSelectedAsset] = useState("ETH");
+  const [selectedNetwork, setSelectedNetwork] = useState("Base");
+  const [paymentCurrency, setPaymentCurrency] = useState("USD");
+  const [paymentMethod, setPaymentMethod] = useState("Debit Card");
 
-  const { openUSDCOnramp, state } = useUSDCOnramp();
+  const { generateOnrampUrl, state } = useOnramp();
 
-  const validateAmount = (amount: string): boolean => {
-    const numAmount = parseFloat(amount);
-
-    if (isNaN(numAmount) || numAmount <= 0) {
-      setAmountError("Please enter a valid amount");
-      return false;
-    }
-
-    if (numAmount < ONRAMP_CONFIG.minAmount) {
-      setAmountError(`Minimum amount is $${ONRAMP_CONFIG.minAmount}`);
-      return false;
-    }
-
-    if (numAmount > ONRAMP_CONFIG.maxAmount) {
-      setAmountError(`Maximum amount is $${ONRAMP_CONFIG.maxAmount}`);
-      return false;
-    }
-
-    setAmountError("");
-    return true;
+  const handleAmountPreset = (value: number) => {
+    setAmount(value.toString());
   };
 
-  const handleBuyCrypto = async () => {
-    if (!validateAmount(usdAmount)) {
-      return;
-    }
+  const handleCreateSession = async () => {
+    if (!amount) return;
 
     try {
-      await openUSDCOnramp(parseFloat(usdAmount), selectedCurrency);
-      // Don't close the modal immediately - let user see the loading state
+      const sessionUrl = await generateOnrampUrl({
+        destinationAddress: "0x" as any, // Will be replaced by actual address in hook
+        fiatAmount: parseFloat(amount),
+        fiatCurrency: paymentCurrency as any,
+        cryptoAsset: selectedAsset as any,
+        network: selectedNetwork.toLowerCase() as any,
+        paymentMethod: paymentMethod as any,
+      });
+
+      if (sessionUrl) {
+        window.open(sessionUrl, "_blank");
+        onClose();
+      }
     } catch (error) {
-      console.error("Failed to open onramp:", error);
-      // Error is handled by the hook and displayed in the UI
+      console.error("Failed to create onramp session:", error);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Error Display */}
-      {state.error && <ErrorMessage message={state.error} />}
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md bg-[#141519]">
+        <DialogHeader>
+          <DialogTitle>
+            <p className="font-normal tracking-tight text-sm -mt-2">
+              Select a token to buy
+            </p>
+          </DialogTitle>
+        </DialogHeader>
 
-      {/* Amount Input */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Amount</label>
-        <div className="relative">
-          <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="number"
-            placeholder={`${ONRAMP_CONFIG.minAmount} - ${ONRAMP_CONFIG.maxAmount}`}
-            value={usdAmount}
-            onChange={(e) => {
-              setUsdAmount(e.target.value);
-              if (amountError) setAmountError("");
-            }}
-            className="pl-10"
-            disabled={state.isLoading}
-            min={ONRAMP_CONFIG.minAmount}
-            max={ONRAMP_CONFIG.maxAmount}
-          />
-        </div>
-        {amountError && (
-          <div className="flex items-center space-x-1 text-sm text-red-600">
-            <AlertCircle className="h-3 w-3" />
-            <span>{amountError}</span>
-          </div>
-        )}
-      </div>
-
-      {/* Currency Selection */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Currency</label>
-        <Select
-          value={selectedCurrency}
-          onValueChange={(value) =>
-            setSelectedCurrency(value as SupportedFiatCurrency)
-          }
-          disabled={state.isLoading}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Object.entries(SUPPORTED_FIAT_CURRENCIES).map(
-              ([code, currency]) => (
-                <SelectItem key={code} value={code}>
-                  {currency.name} ({currency.symbol})
-                </SelectItem>
-              ),
-            )}
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Network Display (Fixed to Base) */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Network</label>
-        <div className="p-3 bg-muted rounded-md">
-          <div className="flex items-center space-x-2">
-            <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-            <span className="text-sm font-medium">Base Mainnet</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Asset Display (Fixed to USDC) */}
-      <div className="space-y-2">
-        <label className="text-sm font-medium">You'll Receive</label>
-        <div className="p-3 bg-muted rounded-md">
-          <div className="flex items-center space-x-2">
+        {/* Hero Section */}
+        <div className="text-center mb-6">
+          <div className="flex justify-center mb-4">
             <Image
-              src="/icons/usdc.svg"
-              alt="USDC"
-              className="rounded-full"
-              width={16}
-              height={16}
+              src={"/onramp-bg-img.svg"}
+              alt="on-ramp"
+              width={104}
+              height={56}
             />
-            <span className="text-sm font-medium">USDC (USD Coin)</span>
           </div>
+          <h2 className="text-white text-[20px] font-medium leading-[120%] tracking-[-0.04em] mb-2">
+            Buy crypto with ease
+          </h2>
+          <p className="text-white/60 text-[13px] font-normal leading-[120%] tracking-[-0.04em]">
+            Buying and transferring USDC on Base is free
+          </p>
         </div>
-      </div>
 
-      {/* Amount Summary */}
-      {usdAmount && !amountError && (
-        <div className="p-4 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-          <div className="text-center">
-            <div className="text-lg font-semibold">
-              ${usdAmount} {selectedCurrency}
+        <div className="space-y-4">
+          {/* Asset and Network Selection Row */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-[13px] font-normal mb-2 uppercase tracking-tight text-[#8B919D]">
+                Select asset
+              </label>
+              <Select value={selectedAsset} onValueChange={setSelectedAsset}>
+                <SelectTrigger className="w-full p-3 border border-[#292B30] rounded-sm bg-[#141519] text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#141519] border-[#292B30]">
+                  {Object.entries(BASE_TOKENS).map(([symbol, token]) => (
+                    <SelectItem
+                      key={symbol}
+                      value={symbol}
+                      className="text-white hover:bg-white/10"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src={token.logoUrl || "/icons/eth.svg"}
+                          alt={token.symbol}
+                          width={20}
+                          height={20}
+                        />
+                        <span>{token.symbol}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <div className="text-sm text-muted-foreground">
-              You'll receive USDC on Base network
+            <div>
+              <label className="text-[13px] font-normal mb-2 uppercase tracking-tight text-[#8B919D]">
+                Select network
+              </label>
+              <Select
+                value={selectedNetwork}
+                onValueChange={setSelectedNetwork}
+              >
+                <SelectTrigger className="w-full p-3 border border-[#292B30] rounded-sm bg-[#141519] text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#141519] border-[#292B30]">
+                  {Object.entries(NETWORKS).map(([key, network]) => (
+                    <SelectItem
+                      key={key}
+                      value={key}
+                      className="text-white hover:bg-white/10"
+                    >
+                      <div className="flex items-center gap-2">
+                        <Image
+                          src={network.logoUrl}
+                          alt={network.name}
+                          width={20}
+                          height={20}
+                        />
+                        <span>{network.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
-      )}
 
-      {/* Action Buttons */}
-      <div className="flex space-x-3">
-        <Button
-          variant="outline"
-          onClick={onClose}
-          className="flex-1"
-          disabled={state.isLoading}
-        >
-          Cancel
-        </Button>
-        <Button
-          onClick={handleBuyCrypto}
-          className="flex-1"
-          disabled={
-            !usdAmount ||
-            parseFloat(usdAmount) <= 0 ||
-            !!amountError ||
-            state.isLoading
-          }
-        >
-          {state.isLoading ? (
-            <div className="flex items-center space-x-2">
-              <LoadingSpinner size="sm" />
-              <span>Opening Coinbase Pay...</span>
+          {/* Amount Field */}
+          <div>
+            <label className="text-[13px] font-normal mb-2 uppercase tracking-tight text-[#8B919D]">
+              Amount
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
+                <Image
+                  src="/dollar-symbol.svg"
+                  alt="USD"
+                  width={16}
+                  height={16}
+                />
+              </div>
+              <input
+                type="number"
+                placeholder="0"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full p-3 pl-10 pr-32 border border-[#292B30] rounded-sm bg-[#141519] text-white placeholder-white/40"
+              />
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                <button
+                  onClick={() => handleAmountPreset(20)}
+                  className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                >
+                  $20
+                </button>
+                <button
+                  onClick={() => handleAmountPreset(50)}
+                  className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                >
+                  $50
+                </button>
+                <button
+                  onClick={() => handleAmountPreset(100)}
+                  className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                >
+                  $100
+                </button>
+              </div>
             </div>
-          ) : (
-            "Continue to Coinbase Pay"
-          )}
-        </Button>
-      </div>
+          </div>
 
-      {/* Footer Info */}
-      <div className="text-xs text-muted-foreground text-center space-y-1">
-        <div>Powered by Coinbase Pay</div>
-        <div>Secure • Fast • Trusted</div>
-      </div>
-    </div>
+          {/* Payment Currency */}
+          <div>
+            <label className="text-[13px] font-normal mb-2 uppercase tracking-tight text-[#8B919D]">
+              Payment currency
+            </label>
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 z-10">
+                <Image
+                  src="/dollar-symbol.svg"
+                  alt="USD"
+                  width={16}
+                  height={16}
+                />
+              </div>
+              <Select
+                value={paymentCurrency}
+                onValueChange={setPaymentCurrency}
+              >
+                <SelectTrigger className="w-full p-3 pl-10 border border-[#292B30] rounded-sm bg-[#141519] text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-[#141519] border-[#292B30]">
+                  <SelectItem
+                    value="USD"
+                    className="text-white hover:bg-white/10"
+                  >
+                    US Dollar
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <label className="text-[13px] font-normal mb-2 uppercase tracking-tight text-[#8B919D]">
+              Payment method
+            </label>
+            <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+              <SelectTrigger className="w-full p-3 border border-[#292B30] rounded-sm bg-[#141519] text-white">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="bg-[#141519] border-[#292B30]">
+                <SelectItem
+                  value="Debit Card"
+                  className="text-white hover:bg-white/10"
+                >
+                  Debit Card
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Secured by Coinbase Divider */}
+          <div className="relative my-6 -mx-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#292B30]" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-[#141519] px-3 text-xs text-[#8B919D] border border-[#292B30] rounded-full flex items-center gap-1">
+                <Image src={"/lock.svg"} width={12} height={12} alt="lock" />
+                Secured by <strong className="text-white">coinbase</strong>
+              </span>
+            </div>
+          </div>
+
+          {/* Request Link Button */}
+          <Button
+            onClick={handleCreateSession}
+            disabled={!amount || state.isLoading}
+            isLoading={state.isLoading}
+            className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium rounded-full"
+          >
+            Request link
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
