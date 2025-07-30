@@ -47,9 +47,9 @@ export const useSwapExecution = () => {
     allowanceIssue: AllowanceIssue,
     fromTokenAddress: string,
     network: string,
+    requiredAllowance: bigint,
   ) => {
     const currentAllowance = BigInt(allowanceIssue.currentAllowance);
-    const requiredAllowance = BigInt(allowanceIssue.requiredAllowance);
     const spender = allowanceIssue.spender;
 
     if (currentAllowance >= requiredAllowance) return;
@@ -66,6 +66,35 @@ export const useSwapExecution = () => {
       args: [spender as `0x${string}`, requiredAllowance],
     });
 
+    // Simulate the transaction to estimate gas
+    let estimatedGas: bigint;
+    try {
+      estimatedGas = await publicClient.estimateGas({
+        account: evmAddress as `0x${string}`,
+        to: fromTokenAddress as `0x${string}`,
+        data: approveData,
+        value: 0n,
+      });
+      // Add 20% buffer to the estimated gas
+      estimatedGas = (estimatedGas * 120n) / 100n;
+    } catch (error) {
+      console.warn("Gas estimation failed, using fallback:", error);
+      estimatedGas = 100000n; // Fallback gas limit
+    }
+
+    // Get current gas prices from the network
+    let maxFeePerGas: bigint;
+    let maxPriorityFeePerGas: bigint;
+    try {
+      const feeData = await publicClient.estimateFeesPerGas();
+      maxFeePerGas = feeData.maxFeePerGas || 10000000n;
+      maxPriorityFeePerGas = feeData.maxPriorityFeePerGas || 1000000n;
+    } catch (error) {
+      console.warn("Fee estimation failed, using fallback:", error);
+      maxFeePerGas = 10000000n;
+      maxPriorityFeePerGas = 1000000n;
+    }
+
     const approvalTx = await sendTransaction({
       evmAccount: evmAddress!,
       network: network as any,
@@ -73,9 +102,9 @@ export const useSwapExecution = () => {
         to: fromTokenAddress as `0x${string}`,
         data: approveData,
         value: 0n,
-        gas: 100000n,
-        maxFeePerGas: 10000000n,
-        maxPriorityFeePerGas: 1000000n,
+        gas: estimatedGas,
+        maxFeePerGas,
+        maxPriorityFeePerGas,
         chainId: getChainId(network),
         type: "eip1559" as const,
       },
@@ -124,6 +153,7 @@ export const useSwapExecution = () => {
         swapQuote.issues.allowance,
         fromTokenAddress,
         network,
+        BigInt(swapQuote.fromAmount),
       );
     }
 
