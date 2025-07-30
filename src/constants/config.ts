@@ -76,3 +76,10 @@ export const ONRAMP_PAYMENT_METHODS = {
   CRYPTO_ACCOUNT: "Coinbase Account",
   FIAT_WALLET: "Coinbase Wallet",
 } as const;
+
+export const NETWORKS = {
+  Base: {
+    name: "Base",
+    logoUrl: "/icons/base.svg",
+  },
+} as const;

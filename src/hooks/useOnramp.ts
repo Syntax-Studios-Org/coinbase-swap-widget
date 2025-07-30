@@ -2,17 +2,11 @@ import { useState, useCallback } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { OnrampService } from "@/services/onramp.service";
-import { ONRAMP_CONFIG } from "@/constants/config";
 import type {
   GenerateOnrampUrlRequest,
   OnrampState,
   UseOnrampReturn,
-  SupportedFiatCurrency,
-  SupportedOnrampAsset,
-  SupportedOnrampNetwork,
-  PaymentMethod
 } from "@/types/onramp";
-import type { Address } from "viem";
 
 export const useOnramp = (): UseOnrampReturn => {
   const evmAddress = useEvmAddress();
@@ -139,29 +133,5 @@ export const useOnramp = (): UseOnrampReturn => {
       isLoading: state.isLoading || generateUrlMutation.isPending,
     },
     reset,
-  };
-};
-
-// Simplified hook for USDC onramp specifically
-export const useUSDCOnramp = () => {
-  const onramp = useOnramp();
-
-  const openUSDCOnramp = useCallback(
-    async (fiatAmount: number, fiatCurrency: SupportedFiatCurrency = "USD") => {
-      await onramp.openOnramp({
-        destinationAddress: "0x" as Address, // This will be replaced by the actual address in the hook
-        fiatAmount,
-        fiatCurrency,
-        cryptoAsset: "USDC" as SupportedOnrampAsset,
-        network: "base" as SupportedOnrampNetwork,
-        paymentMethod: ONRAMP_CONFIG.defaultPaymentMethod as PaymentMethod,
-      });
-    },
-    [onramp]
-  );
-
-  return {
-    openUSDCOnramp,
-    ...onramp,
   };
 };
