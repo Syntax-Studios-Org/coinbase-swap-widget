@@ -199,8 +199,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 For support and questions:
 
 - [Coinbase Developer Platform Documentation](https://docs.cdp.coinbase.com/)
-- [CDP Hooks Documentation](https://docs.cdp.coinbase.com/cdp-hooks/docs/welcome)
-- [GitHub Issues](https://github.com/coinbase/cdp-swap-widget/issues)
+- [CDP Hooks Documentation](https://coinbase.github.io/cdp-web/modules.html)
 
 ## Acknowledgments
 
