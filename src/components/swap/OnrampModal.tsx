@@ -16,6 +16,7 @@ import { ErrorMessage } from "@/components/common/ErrorMessage";
 import { useUSDCOnramp } from "@/hooks/useOnramp";
 import { ONRAMP_CONFIG, SUPPORTED_FIAT_CURRENCIES } from "@/constants/config";
 import type { SupportedFiatCurrency } from "@/types/onramp";
+import Image from "next/image";
 
 interface OnrampModalProps {
   onClose: () => void;
@@ -59,7 +60,6 @@ export function OnrampModal({ onClose }: OnrampModalProps) {
     try {
       await openUSDCOnramp(parseFloat(usdAmount), selectedCurrency);
       // Don't close the modal immediately - let user see the loading state
-      // The modal will close when they return from Coinbase Pay
     } catch (error) {
       console.error("Failed to open onramp:", error);
       // Error is handled by the hook and displayed in the UI
@@ -139,10 +139,12 @@ export function OnrampModal({ onClose }: OnrampModalProps) {
         <label className="text-sm font-medium">You'll Receive</label>
         <div className="p-3 bg-muted rounded-md">
           <div className="flex items-center space-x-2">
-            <img
-              src="https://cryptologos.cc/logos/usd-coin-usdc-logo.png"
+            <Image
+              src="/icons/usdc.svg"
               alt="USDC"
-              className="w-4 h-4 rounded-full"
+              className="rounded-full"
+              width={16}
+              height={16}
             />
             <span className="text-sm font-medium">USDC (USD Coin)</span>
           </div>

@@ -14,9 +14,11 @@ export interface SwapQuote {
   fromAmount: bigint;
   toAmount: bigint;
   minToAmount: bigint;
+  fees: SwapFees;
   gas: bigint;
   liquidityAvailable: boolean;
   route?: string[];
+  issues?: SwapIssues;
 }
 
 export interface SwapParams {

@@ -32,6 +32,8 @@ export class SwapService {
         minToAmount: BigInt(data.minToAmount),
         gas: BigInt(data.gas),
         liquidityAvailable: data.liquidityAvailable,
+        fees: data.fees,
+        issues: data.issues,
       };
     } catch (error) {
       console.error("Error getting swap price:", error);
