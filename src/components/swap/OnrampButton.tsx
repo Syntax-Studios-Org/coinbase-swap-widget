@@ -12,6 +12,7 @@ import {
 } from "@/components/ui";
 import { OnrampModal } from "./OnrampModal";
 import { useIsSignedIn } from "@coinbase/cdp-hooks";
+import Image from "next/image";
 
 export function OnrampButton() {
   const [isOpen, setIsOpen] = useState(false);
@@ -31,20 +32,15 @@ export function OnrampButton() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-6 px-2 text-xs"
-          disabled={!isSignedIn}
-          title={
-            !isSignedIn
-              ? "Please sign in to buy crypto"
-              : "Buy crypto with fiat"
-          }
-        >
-          <CreditCard className="h-3 w-3 mr-1" />
-          Buy Crypto
-        </Button>
+        <div className="relative mt-4 p-[1px] rounded-[1rem] bg-[conic-gradient(from_180deg_at_50%_50%,#79DBD2_0deg,#45E1E5_90deg,#B82EA4_172.8deg,#FF9533_230.4deg,#0052FF_306deg,#7FD057_360deg)] cursor-pointer">
+          <div className="rounded-[1rem] p-4 bg-[#0A0B0D] flex justify-between">
+            <div>
+              <p className="text-white font-normal tracking-tight text-base">Buy Crypto with ease</p>
+              <p className="text-white/60 text-[13px] tracking-tight">Buying and transferring USDC on Base is free</p>
+            </div>
+            <Image src={'/onramp-bg-img.svg'} alt="Onramp Background Image" width={72} height={36} />
+          </div>
+        </div>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>

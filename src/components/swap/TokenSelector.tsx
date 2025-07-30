@@ -61,58 +61,55 @@ export function TokenSelector({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" className="w-3/4 justify-between h-12 px-3">
+        <button className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 transition-colors rounded-full px-2 py-1.5 min-w-[103px] h-9">
           {selectedToken ? (
-            <div className="flex items-center space-x-2">
+            <>
               {selectedToken.logoUrl && (
                 <img
                   src={selectedToken.logoUrl}
                   alt={selectedToken.symbol}
-                  className="w-6 h-6 rounded-full"
+                  className="w-5 h-5 rounded-full"
                 />
               )}
-              <div className="text-left">
-                <div className="font-medium">{selectedToken.symbol}</div>
-                <div className="text-xs text-muted-foreground">
-                  {selectedToken.name}
-                </div>
-              </div>
-            </div>
+              <span className="text-white text-sm font-medium">{selectedToken.symbol}</span>
+              <ChevronDown className="h-3 w-3 text-white/60" />
+            </>
           ) : (
-            <span className="text-muted-foreground">Select {label}</span>
+            <>
+              <span className="text-white/60 text-sm">Select {label}</span>
+              <ChevronDown className="h-3 w-3 text-white/60" />
+            </>
           )}
-          <ChevronDown className="h-4 w-4" />
-        </Button>
+        </button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md bg-[#1A1B1F] border-white/10">
         <DialogHeader>
-          <DialogTitle>Select {label}</DialogTitle>
+          <DialogTitle className="text-white">Select {label}</DialogTitle>
         </DialogHeader>
 
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
           <Input
             placeholder="Search tokens..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-[#2A2B2F] border-white/10 text-white placeholder-white/40"
           />
         </div>
 
         <div className="space-y-1 max-h-96 overflow-y-auto">
           {availableTokens.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-white/60">
               No tokens found
             </div>
           ) : (
             availableTokens.map((token) => {
               const balance = getTokenBalance(token.address);
               return (
-                <Button
+                <button
                   key={token.address}
-                  variant="ghost"
-                  className="w-full justify-start h-auto p-3 hover:bg-muted"
+                  className="w-full p-3 hover:bg-white/5 rounded-lg transition-colors"
                   onClick={() => handleTokenSelect(token)}
                 >
                   <div className="flex items-center space-x-3 w-full">
@@ -127,8 +124,8 @@ export function TokenSelector({
                           }}
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <span className="text-sm font-semibold text-primary">
+                        <div className="w-10 h-10 rounded-full bg-[#0052FF]/20 flex items-center justify-center">
+                          <span className="text-sm font-semibold text-[#0052FF]">
                             {token.symbol.charAt(0)}
                           </span>
                         </div>
@@ -136,30 +133,30 @@ export function TokenSelector({
                     </div>
 
                     <div className="flex-1 text-left">
-                      <div className="font-medium text-base">
+                      <div className="font-medium text-base text-white">
                         {token.symbol}
                       </div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-white/60">
                         {token.name}
                       </div>
                     </div>
 
                     <div className="text-right">
-                      <div className="font-medium">
+                      <div className="font-medium text-white">
                         {balance?.formattedBalance || "0.000000"}
                       </div>
                       {balance?.usdValue && balance.usdValue > 0 && (
-                        <div className="text-sm text-muted-foreground">
+                        <div className="text-sm text-white/60">
                           ${balance.usdValue.toFixed(2)}
                         </div>
                       )}
                     </div>
 
                     {selectedToken?.address === token.address && (
-                      <Check className="h-5 w-5 text-primary" />
+                      <Check className="h-5 w-5 text-[#0052FF]" />
                     )}
                   </div>
-                </Button>
+                </button>
               );
             })
           )}

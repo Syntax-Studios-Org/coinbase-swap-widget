@@ -21,6 +21,7 @@ const DialogOverlay = React.forwardRef<
       "fixed inset-0 z-50 bg-black/80 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
       className
     )}
+    style={{ backgroundColor: 'rgba(10, 11, 13, 0.8)' }}
     {...props}
   />
 ));

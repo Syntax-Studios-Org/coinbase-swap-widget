@@ -1,10 +1,7 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { AppProviders } from "@/providers/AppProviders";
 import { ErrorBoundary } from "@/components/ui/ErrorBoundary";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Coinbase CDP Swap Widget",
@@ -27,7 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={"font-coinbase-sans"}>
         <ErrorBoundary>
           <AppProviders>{children}</AppProviders>
         </ErrorBoundary>

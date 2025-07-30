@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CdpClient } from "@coinbase/cdp-sdk";
 import type { Address } from "viem";
+import { platform } from "process";
 
 interface SwapQuoteRequest {
   fromToken: Address;
@@ -74,6 +75,16 @@ export async function POST(request: NextRequest) {
         } : null,
         simulationIncomplete: swapPrice.issues?.simulationIncomplete || false,
       },
+      fees: {
+        gasFee: {
+          amount: swapPrice.fees.gasFee?.amount.toString(),
+          token: swapPrice.fees.gasFee?.token,
+        },
+        protocolFee: {
+          amount: swapPrice.fees.protocolFee?.amount.toString(),
+          token: swapPrice.fees.protocolFee?.token,
+        }
+      }
     };
 
     return NextResponse.json(response);

@@ -1,28 +1,36 @@
 "use client";
 
-import { AuthForm } from "@/components/auth/AuthForm";
 import { SwapWidget } from "@/components/swap/SwapWidget";
 import { LoadingSpinner } from "@/components/ui";
-import { useIsInitialized, useIsSignedIn } from "@coinbase/cdp-hooks";
+import { useIsInitialized } from "@coinbase/cdp-hooks";
 
 export default function HomePage() {
   const isInitialized = useIsInitialized();
-  const isSignedIn = useIsSignedIn();
 
   if (!isInitialized) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-background p-4">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0A0B0D' }}>
         <div className="flex flex-col items-center space-y-4">
           <LoadingSpinner size="lg" />
-          <p className="text-muted-foreground">Initializing...</p>
+          <p className="text-white/60">Initializing...</p>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-background p-4">
-      {!isSignedIn ? <AuthForm /> : <SwapWidget />}
-    </main>
+    <div className="min-h-screen" style={{ backgroundColor: '#0A0B0D' }}>
+      <nav className="flex items-center p-6">
+        <img
+          src="/icons/base.svg"
+          alt="Base"
+          className="w-8 h-8"
+        />
+      </nav>
+
+      <main className="flex items-center justify-center px-4" style={{ minHeight: 'calc(100vh - 80px)' }}>
+        <SwapWidget />
+      </main>
+    </div>
   );
 }

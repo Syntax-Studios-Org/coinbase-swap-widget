@@ -16,6 +16,10 @@ const config: Config = {
       },
     },
     extend: {
+      fontFamily: {
+        'coinbase-sans': ['Coinbase Sans', 'system-ui', 'sans-serif'],
+        'sans': ['Coinbase Sans', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
