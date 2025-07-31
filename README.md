@@ -174,6 +174,77 @@ Dynamic network support with proper chain ID validation and RPC endpoint configu
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm run type-check` - Run TypeScript compiler check
+- `npm test` - Run Playwright tests
+- `npm run test:ui` - Run tests with interactive UI
+- `npm run test:headed` - Run tests in headed mode
+- `npm run test:debug` - Debug tests step-by-step
+
+## 🧪 Testing
+
+This project includes comprehensive end-to-end tests using Playwright.
+
+### Running Tests
+
+1. **Run all tests** (headless mode):
+```bash
+npm test
+```
+
+2. **Run tests with UI** (interactive mode):
+```bash
+npm run test:ui
+```
+
+3. **Run tests in headed mode** (see browser):
+```bash
+npm run test:headed
+```
+
+4. **Debug tests** (step-by-step debugging):
+```bash
+npm run test:debug
+```
+
+### Test Coverage
+
+The test suite covers:
+
+#### **Homepage Tests** (`tests/homepage.spec.ts`)
+- Page loading and title verification
+- Connect wallet button visibility
+- Token selection dropdowns presence
+- Onramp button visibility
+
+#### **Swap Widget Tests** (`tests/swap-widget.spec.ts`)
+- Token selector functionality
+- Token selection process
+- Amount input fields
+- Swap button states
+- Trade details toggle
+- Max button functionality
+- Swap tokens button
+
+
+#### **Responsive Design Tests** (`tests/responsive.spec.ts`)
+- Mobile viewport (375x667)
+- Tablet viewport (768x1024)
+- Desktop viewport (1920x1080)
+- Modal responsiveness
+
+### Test Configuration
+
+Tests run on multiple browsers:
+- **Chromium** (Chrome/Edge)
+- **Firefox**
+- **WebKit** (Safari)
+- **Mobile Chrome** (Pixel 5)
+- **Mobile Safari** (iPhone 12)
+
+### Prerequisites for Testing
+
+- Development server must be running (`npm run dev`)
+- All dependencies installed
+- Playwright browsers installed (automatic on first run)
 
 ## Contributing
 
