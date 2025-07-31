@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useCallback } from "react";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { formatUnits } from "viem";
 import type { Token, TokenBalance, TokenBalancesApiResponse, ApiTokenBalance } from "@/types/swap";
@@ -6,59 +6,79 @@ import type { SupportedNetwork } from "@/constants/tokens";
 
 export const useTokenBalances = (network: SupportedNetwork, tokens: Token[]) => {
   const evmAddress = useEvmAddress();
+  const [data, setData] = useState<TokenBalance[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  return useQuery({
-    queryKey: ["tokenBalances", evmAddress, network],
-    queryFn: async (): Promise<TokenBalance[]> => {
-      if (!evmAddress) return [];
+  const fetchBalances = useCallback(async (): Promise<void> => {
+    if (!evmAddress) {
+      setData([]);
+      return;
+    }
 
-      try {
-        const response = await fetch("/api/balances", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            address: evmAddress,
-            network,
-          }),
-        });
+    setIsLoading(true);
+    setError(null);
 
-        if (!response.ok) {
-          throw new Error("Failed to fetch balances");
-        }
+    try {
+      const response = await fetch("/api/balances", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          address: evmAddress,
+          network,
+        }),
+      });
 
-        const result: TokenBalancesApiResponse = await response.json();
-
-        const balances: TokenBalance[] = tokens.map(token => {
-          const apiBalance = result.balances?.find((balance: ApiTokenBalance) =>
-            balance.token.contractAddress?.toLowerCase() === token.address.toLowerCase()
-          );
-
-          const balance = apiBalance ? BigInt(apiBalance.amount.amount) : BigInt(0);
-          const decimals = apiBalance ? apiBalance.amount.decimals : token.decimals;
-          const formattedBalance = formatUnits(balance, decimals);
-
-          return {
-            token,
-            balance,
-            formattedBalance: parseFloat(formattedBalance).toFixed(6),
-          };
-        });
-
-        return balances;
-      } catch (error) {
-        console.error("Error fetching token balances:", error);
-        return tokens.map(token => ({
-          token,
-          balance: BigInt(0),
-          formattedBalance: "0.000000",
-          usdValue: 0,
-        }));
+      if (!response.ok) {
+        throw new Error("Failed to fetch balances");
       }
-    },
-    enabled: !!evmAddress,
-    refetchInterval: 30000,
-    staleTime: 10000,
-  });
+
+      const result: TokenBalancesApiResponse = await response.json();
+
+      const balances: TokenBalance[] = tokens.map(token => {
+        const apiBalance = result.balances?.find((balance: ApiTokenBalance) =>
+          balance.token.contractAddress?.toLowerCase() === token.address.toLowerCase()
+        );
+
+        const balance = apiBalance ? BigInt(apiBalance.amount.amount) : BigInt(0);
+        const decimals = apiBalance ? apiBalance.amount.decimals : token.decimals;
+        const formattedBalance = formatUnits(balance, decimals);
+
+        return {
+          token,
+          balance,
+          formattedBalance: parseFloat(formattedBalance).toFixed(6),
+        };
+      });
+
+      setData(balances);
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to fetch balances');
+      setError(error);
+      console.error("Error fetching token balances:", error);
+      
+      // Set fallback data on error
+      const fallbackBalances = tokens.map(token => ({
+        token,
+        balance: BigInt(0),
+        formattedBalance: "0.000000",
+        usdValue: 0,
+      }));
+      setData(fallbackBalances);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [evmAddress, network, tokens]);
+
+  useEffect(() => {
+    fetchBalances();
+    
+    // Auto-refresh every 30 seconds
+    const interval = setInterval(fetchBalances, 30000);
+    return () => clearInterval(interval);
+  }, [fetchBalances]);
+
+  return { data, isLoading, error, refetch: fetchBalances };
 };

@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
 import {
   useEvmAddress,
   useSendEvmTransaction,
@@ -42,8 +42,11 @@ export const useSwapExecution = () => {
   const sendTransaction = useSendEvmTransaction();
   const signTypedData = useSignEvmTypedData();
   const publicClient = createBasePublicClient();
+  
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  const handleTokenApproval = async (
+  const handleTokenApproval = useCallback(async (
     allowanceIssue: AllowanceIssue,
     fromTokenAddress: string,
     network: string,
@@ -115,9 +118,9 @@ export const useSwapExecution = () => {
       approvalTx.transactionHash,
       "ERC-20 approval",
     );
-  };
+  }, [evmAddress, sendTransaction, publicClient]);
 
-  const signPermit2Message = async (permit2Data: Permit2Data): Promise<Hex> => {
+  const signPermit2Message = useCallback(async (permit2Data: Permit2Data): Promise<Hex> => {
     console.log("Signing Permit2 message...");
 
     const signResult = await signTypedData({
@@ -137,75 +140,81 @@ export const useSwapExecution = () => {
     });
 
     return concat([signatureLength, signature]);
-  };
+  }, [evmAddress, signTypedData]);
 
-  const executeSwap = async ({
+  const executeSwap = useCallback(async ({
     swapQuote,
     fromTokenAddress,
     network,
-  }: SwapExecutionParams) => {
+  }: SwapExecutionParams): Promise<{ transactionHash: string }> => {
     if (!evmAddress) {
       throw new Error("Wallet not connected");
     }
 
-    if (swapQuote.issues?.allowance) {
-      await handleTokenApproval(
-        swapQuote.issues.allowance,
-        fromTokenAddress,
-        network,
-        BigInt(swapQuote.fromAmount),
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (swapQuote.issues?.allowance) {
+        await handleTokenApproval(
+          swapQuote.issues.allowance,
+          fromTokenAddress,
+          network,
+          BigInt(swapQuote.fromAmount),
+        );
+      }
+
+      let txData = swapQuote.transaction.data as Hex;
+      if (swapQuote.permit2?.eip712) {
+        const permitSignature = await signPermit2Message(swapQuote.permit2);
+        txData = concat([txData, permitSignature]);
+      }
+
+      console.log("Executing swap...");
+      const swapTx = await sendTransaction({
+        evmAccount: evmAddress,
+        network: network as any,
+        transaction: {
+          to: swapQuote.transaction.to as `0x${string}`,
+          data: txData,
+          value: BigInt(swapQuote.transaction.value),
+          gas: swapQuote.transaction.gas
+            ? BigInt(swapQuote.transaction.gas)
+            : 500000n,
+          maxFeePerGas: swapQuote.transaction.gasPrice
+            ? BigInt(swapQuote.transaction.gasPrice)
+            : 10000000n,
+          maxPriorityFeePerGas: swapQuote.transaction.gasPrice
+            ? BigInt(
+                Math.min(
+                  Math.floor(Number(swapQuote.transaction.gasPrice) * 0.1),
+                  1000000000,
+                ),
+              )
+            : 1000000000n,
+          chainId: getChainId(network),
+          type: "eip1559" as const,
+        },
+      });
+
+      await waitForTransactionConfirmation(
+        publicClient,
+        swapTx.transactionHash,
+        "Swap transaction",
       );
-    }
 
-    let txData = swapQuote.transaction.data as Hex;
-    if (swapQuote.permit2?.eip712) {
-      const permitSignature = await signPermit2Message(swapQuote.permit2);
-      txData = concat([txData, permitSignature]);
-    }
-
-    console.log("Executing swap...");
-    const swapTx = await sendTransaction({
-      evmAccount: evmAddress,
-      network: network as any,
-      transaction: {
-        to: swapQuote.transaction.to as `0x${string}`,
-        data: txData,
-        value: BigInt(swapQuote.transaction.value),
-        gas: swapQuote.transaction.gas
-          ? BigInt(swapQuote.transaction.gas)
-          : 500000n,
-        maxFeePerGas: swapQuote.transaction.gasPrice
-          ? BigInt(swapQuote.transaction.gasPrice)
-          : 10000000n,
-        maxPriorityFeePerGas: swapQuote.transaction.gasPrice
-          ? BigInt(
-              Math.min(
-                Math.floor(Number(swapQuote.transaction.gasPrice) * 0.1),
-                1000000000,
-              ),
-            )
-          : 1000000000n,
-        chainId: getChainId(network),
-        type: "eip1559" as const,
-      },
-    });
-
-    await waitForTransactionConfirmation(
-      publicClient,
-      swapTx.transactionHash,
-      "Swap transaction",
-    );
-
-    return { transactionHash: swapTx.transactionHash };
-  };
-
-  return useMutation({
-    mutationFn: executeSwap,
-    onSuccess: (data) => {
-      console.log("Swap completed successfully:", data.transactionHash);
-    },
-    onError: (error) => {
+      const result = { transactionHash: swapTx.transactionHash };
+      console.log("Swap completed successfully:", result.transactionHash);
+      return result;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Swap execution failed');
+      setError(error);
       console.error("Swap failed:", error);
-    },
-  });
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [evmAddress, sendTransaction, signTypedData, publicClient, handleTokenApproval, signPermit2Message]);
+
+  return { executeSwap, isLoading, error };
 };

@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { useMutation } from "@tanstack/react-query";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { OnrampService } from "@/services/onramp.service";
 import type {
@@ -19,79 +18,74 @@ export const useOnramp = (): UseOnrampReturn => {
     isGeneratingUrl: false,
   });
 
-  const generateUrlMutation = useMutation({
-    mutationFn: async (params: GenerateOnrampUrlRequest) => {
+  const generateOnrampUrl = useCallback(
+    async (params: GenerateOnrampUrlRequest): Promise<string | null> => {
       if (!evmAddress) {
         throw new Error("Wallet address not available");
       }
 
-      // Validate parameters
-      const isValid = OnrampService.validateOnrampParams({
-        fiatAmount: params.fiatAmount,
-        fiatCurrency: params.fiatCurrency,
-        cryptoAsset: params.cryptoAsset,
-        network: params.network,
-        destinationAddress: evmAddress,
-      });
-
-      if (!isValid) {
-        throw new Error("Invalid onramp parameters");
-      }
-
-      // Generate USDC onramp URL
-      const url = await OnrampService.generateUSDCOnrampUrl(
-        evmAddress,
-        params.fiatAmount,
-        params.fiatCurrency
-      );
-
-      if (!url) {
-        throw new Error("Failed to generate onramp URL");
-      }
-
-      return url;
-    },
-    onMutate: () => {
-      setState(prev => ({
+      setState((prev) => ({
         ...prev,
         isGeneratingUrl: true,
         error: null,
       }));
-    },
-    onSuccess: (url) => {
-      setState(prev => ({
-        ...prev,
-        onrampUrl: url,
-        isGeneratingUrl: false,
-        error: null,
-      }));
-    },
-    onError: (error: Error) => {
-      setState(prev => ({
-        ...prev,
-        isGeneratingUrl: false,
-        error: error.message,
-        onrampUrl: null,
-      }));
-    },
-  });
 
-  const generateOnrampUrl = useCallback(
-    async (params: GenerateOnrampUrlRequest): Promise<string | null> => {
       try {
-        const url = await generateUrlMutation.mutateAsync(params);
+        // Validate parameters
+        const isValid = OnrampService.validateOnrampParams({
+          fiatAmount: params.fiatAmount,
+          fiatCurrency: params.fiatCurrency,
+          cryptoAsset: params.cryptoAsset,
+          network: params.network,
+          destinationAddress: evmAddress,
+        });
+
+        if (!isValid) {
+          throw new Error("Invalid onramp parameters");
+        }
+
+        // Generate onramp URL for the specified asset
+        const url = await OnrampService.generateOnrampUrl(
+          evmAddress,
+          params.fiatAmount,
+          params.cryptoAsset,
+          params.network,
+          params.fiatCurrency
+        );
+
+        if (!url) {
+          throw new Error("Failed to generate onramp URL");
+        }
+
+        setState((prev) => ({
+          ...prev,
+          onrampUrl: url,
+          isGeneratingUrl: false,
+          error: null,
+        }));
+
         return url;
       } catch (error) {
+        const errorMessage =
+          error instanceof Error
+            ? error.message
+            : "Failed to generate onramp URL";
+        setState((prev) => ({
+          ...prev,
+          isGeneratingUrl: false,
+          error: errorMessage,
+          onrampUrl: null,
+        }));
         console.error("Failed to generate onramp URL:", error);
         return null;
       }
     },
-    [generateUrlMutation]
+    [evmAddress],
   );
 
   const openOnramp = useCallback(
     async (params: GenerateOnrampUrlRequest): Promise<void> => {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      setState((prev) => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const url = await generateOnrampUrl(params);
@@ -103,16 +97,17 @@ export const useOnramp = (): UseOnrampReturn => {
         // Open the onramp URL
         OnrampService.openOnrampWindow(url);
 
-        setState(prev => ({ ...prev, isLoading: false }));
+        setState((prev) => ({ ...prev, isLoading: false }));
       } catch (error) {
-        setState(prev => ({
+        setState((prev) => ({
           ...prev,
           isLoading: false,
-          error: error instanceof Error ? error.message : "Unknown error occurred",
+          error:
+            error instanceof Error ? error.message : "Unknown error occurred",
         }));
       }
     },
-    [generateOnrampUrl]
+    [generateOnrampUrl],
   );
 
   const reset = useCallback(() => {
@@ -128,10 +123,7 @@ export const useOnramp = (): UseOnrampReturn => {
   return {
     generateOnrampUrl,
     openOnramp,
-    state: {
-      ...state,
-      isLoading: state.isLoading || generateUrlMutation.isPending,
-    },
+    state,
     reset,
   };
 };

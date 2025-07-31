@@ -1,36 +1,60 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState, useCallback } from "react";
 import { useSignInWithEmail, useVerifyEmailOTP } from "@coinbase/cdp-hooks";
 import type { SignInRequest, VerifyOTPRequest, AuthError } from "@/types/auth";
 
 export const useSignIn = () => {
   const signInWithEmail = useSignInWithEmail();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  return useMutation({
-    mutationFn: async ({ email }: SignInRequest) => {
-      const result = await signInWithEmail({ email });
-      return result;
+  const signIn = useCallback(
+    async ({ email }: SignInRequest) => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await signInWithEmail({ email });
+        return result;
+      } catch (err) {
+        const error = err instanceof Error ? err : new Error("Sign in failed");
+        setError(error);
+        console.error("Sign in failed:", error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
     },
-    onError: (error: Error) => {
-      console.error("Sign in failed:", error);
-    },
-  });
+    [signInWithEmail],
+  );
+
+  return { signIn, isLoading, error };
 };
 
 export const useVerifyOTP = () => {
   const verifyEmailOtp = useVerifyEmailOTP();
-  const queryClient = useQueryClient();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  return useMutation({
-    mutationFn: async ({ flowId, otp }: VerifyOTPRequest) => {
-      const result = await verifyEmailOtp({ flowId, otp });
-      return result;
+  const verifyOTP = useCallback(
+    async ({ flowId, otp }: VerifyOTPRequest) => {
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await verifyEmailOtp({ flowId, otp });
+        return result;
+      } catch (err) {
+        const error =
+          err instanceof Error ? err : new Error("OTP verification failed");
+        setError(error);
+        console.error("OTP verification failed:", error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
     },
-    onSuccess: (data) => {
-      // Invalidate and refetch user-related queries
-      queryClient.invalidateQueries({ queryKey: ["user"] });
-    },
-    onError: (error: Error) => {
-      console.error("OTP verification failed:", error);
-    },
-  });
+    [verifyEmailOtp],
+  );
+
+  return { verifyOTP, isLoading, error };
 };

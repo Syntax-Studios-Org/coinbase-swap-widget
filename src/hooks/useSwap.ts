@@ -1,8 +1,12 @@
-import { useState, useCallback } from "react";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useState, useCallback, useEffect } from "react";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { SwapService } from "@/services/swap.service";
-import type { SwapParams, Token } from "@/types/swap";
+import type {
+  SwapParams,
+  Token,
+  SwapQuote,
+  SwapQuoteResponse,
+} from "@/types/swap";
 
 export const useSwapPrice = (
   fromToken: Token | null,
@@ -12,25 +16,26 @@ export const useSwapPrice = (
   enabled: boolean = true,
 ) => {
   const evmAddress = useEvmAddress();
+  const [data, setData] = useState<SwapQuote | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  return useQuery({
-    queryKey: [
-      "swapPrice",
-      fromToken?.address,
-      toToken?.address,
-      fromAmount.toString(),
-      network,
-    ],
-    queryFn: async () => {
-      console.log("useSwapPrice queryFn executing...");
+  const fetchPrice = useCallback(async () => {
+    if (
+      !enabled ||
+      !fromToken ||
+      !toToken ||
+      !evmAddress ||
+      fromAmount === BigInt(0)
+    ) {
+      setData(null);
+      return;
+    }
 
-      if (!fromToken || !toToken || !evmAddress || fromAmount === BigInt(0)) {
-        console.log(
-          "useSwapPrice queryFn: Missing required data, returning null",
-        );
-        return null;
-      }
+    setIsLoading(true);
+    setError(null);
 
+    try {
       const params: SwapParams = {
         fromToken: fromToken.address,
         toToken: toToken.address,
@@ -44,41 +49,61 @@ export const useSwapPrice = (
         quote.fromToken = fromToken;
         quote.toToken = toToken;
       }
-      return quote;
-    },
-    enabled: (() => {
-      const isEnabled =
-        enabled &&
-        !!fromToken &&
-        !!toToken &&
-        !!evmAddress &&
-        fromAmount > BigInt(0);
-      return isEnabled;
-    })(),
-    refetchInterval: 10000, // Refetch every 10 seconds for fresh prices
-    staleTime: 5000, // Consider data stale after 5 seconds
-  });
+      setData(quote);
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Failed to fetch price"));
+      setData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [enabled, fromToken?.address, toToken?.address, evmAddress, fromAmount, network]);
+
+  useEffect(() => {
+    fetchPrice();
+
+    // Auto-refresh every 10 seconds for fresh prices
+    const interval = setInterval(fetchPrice, 10000);
+    return () => clearInterval(interval);
+  }, [fetchPrice]);
+
+  return { data, isLoading, error, refetch: fetchPrice };
 };
 
 export const useCreateSwapQuote = () => {
   const evmAddress = useEvmAddress();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
 
-  return useMutation({
-    mutationFn: async (params: SwapParams & { slippageBps?: number }) => {
+  const createQuote = useCallback(
+    async (
+      params: SwapParams & { slippageBps?: number },
+    ): Promise<SwapQuoteResponse> => {
       if (!evmAddress) {
         throw new Error("No wallet address available");
       }
 
-      const result = await SwapService.createSwapQuote({
-        ...params,
-        taker: evmAddress,
-      });
-      return result;
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const result = await SwapService.createSwapQuote({
+          ...params,
+          taker: evmAddress,
+        });
+        return result;
+      } catch (err) {
+        const error =
+          err instanceof Error ? err : new Error("Failed to create swap quote");
+        setError(error);
+        throw error;
+      } finally {
+        setIsLoading(false);
+      }
     },
-    onError: (error) => {
-      console.error("Failed to create swap quote:", error);
-    },
-  });
+    [evmAddress],
+  );
+
+  return { createQuote, isLoading, error };
 };
 
 export const useSwapState = () => {

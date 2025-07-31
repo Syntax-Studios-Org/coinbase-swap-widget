@@ -13,9 +13,10 @@ A production-ready swap and onramp widget built with Coinbase Developer Platform
 - **Precise Balance Handling**: Accurate MAX button without rounding errors
 
 ### 💳 Onramp Integration
-- **Buy Crypto**: Purchase crypto directly with fiat currency
+- **Multi-token Onramp**: Buy any supported crypto directly to your wallet (ETH, USDC, DAI, WETH)
 - **Coinbase Integration**: Seamless integration with Coinbase onramp services
 - **Multiple Payment Methods**: Support for various payment options
+- **Dynamic Asset Selection**: Choose from all supported tokens, not just USDC
 - **Instant Availability**: Quick crypto delivery to your wallet
 - **Session Management**: Secure onramp session handling
 
