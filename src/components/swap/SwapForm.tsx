@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ArrowUpDown } from "lucide-react";
 import { Button, Input } from "@/components/ui";
 import { TokenSelector } from "./TokenSelector";
@@ -40,7 +40,7 @@ export function SwapForm({
   setFromAmount,
   swapTokens,
 }: SwapFormProps) {
-  const tokens = Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]);
+  const tokens = useMemo(() => Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]), [network]);
   const { data: balances } = useTokenBalances(
     network as SupportedNetwork,
     tokens,

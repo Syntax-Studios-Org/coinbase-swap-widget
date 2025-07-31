@@ -1,12 +1,17 @@
-import { OnrampQuoteParams, OnrampUrlParams, SessionTokenRequest, SessionTokenResponse } from "@/types/onramp";
+import {
+  OnrampQuoteParams,
+  OnrampUrlParams,
+  SessionTokenRequest,
+  SessionTokenResponse,
+} from "@/types/onramp";
 import type { Address } from "viem";
 
-
 export class OnrampService {
-  private static readonly COINBASE_PAY_BASE_URL = 'https://pay.coinbase.com/buy/select-asset';
-  private static readonly BASE_MAINNET = 'base';
-  private static readonly USDC_ASSET = 'USDC';
-  private static readonly DEFAULT_FIAT_CURRENCY = 'USD';
+  private static readonly COINBASE_PAY_BASE_URL =
+    "https://pay.coinbase.com/buy/select-asset";
+  private static readonly BASE_MAINNET = "base";
+  private static readonly USDC_ASSET = "USDC";
+  private static readonly DEFAULT_FIAT_CURRENCY = "USD";
 
   /**
    * Generates a session token for secure onramp initialization
@@ -14,7 +19,7 @@ export class OnrampService {
   static async generateSessionToken(
     address: Address,
     networks: string[] = [OnrampService.BASE_MAINNET],
-    assets?: string[]
+    assets?: string[],
   ): Promise<string | null> {
     try {
       const requestBody: SessionTokenRequest = {
@@ -27,24 +32,24 @@ export class OnrampService {
         ...(assets && { assets }),
       };
 
-      const response = await fetch('/api/onramp/session', {
-        method: 'POST',
+      const response = await fetch("/api/onramp/session", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const error = await response.json();
-        console.error('Session token generation failed:', error);
-        throw new Error(error.error || 'Failed to generate session token');
+        console.error("Session token generation failed:", error);
+        throw new Error(error.error || "Failed to generate session token");
       }
 
       const data: SessionTokenResponse = await response.json();
       return data.token;
     } catch (error) {
-      console.error('Error generating session token:', error);
+      console.error("Error generating session token:", error);
       return null;
     }
   }
@@ -54,7 +59,7 @@ export class OnrampService {
    */
   static formatAddressesForToken(
     address: string,
-    networks: string[]
+    networks: string[],
   ): Array<{ address: string; blockchains: string[] }> {
     return [
       {
@@ -67,14 +72,14 @@ export class OnrampService {
   /**
    * Generates a one-click-buy onramp URL with session token
    */
-  static generateOnrampUrl(params: OnrampUrlParams): string {
+  static buildOnrampUrl(params: OnrampUrlParams): string {
     const {
       sessionToken,
       fiatAmount,
       fiatCurrency,
       defaultAsset,
       defaultNetwork,
-      defaultPaymentMethod = 'CARD',
+      defaultPaymentMethod = "CARD",
       destinationAddress,
       partnerUserId,
       redirectUrl,
@@ -95,45 +100,47 @@ export class OnrampService {
 
     // Add optional parameters
     if (redirectUrl) {
-      queryParams.set('redirectUrl', redirectUrl);
+      queryParams.set("redirectUrl", redirectUrl);
     }
 
     return `${OnrampService.COINBASE_PAY_BASE_URL}?${queryParams.toString()}`;
   }
 
   /**
-   * Generates a USDC onramp URL for Base mainnet
+   * Generates an onramp URL for any supported asset and network
    */
-  static async generateUSDCOnrampUrl(
+  static async generateOnrampUrl(
     destinationAddress: Address,
     fiatAmount: number,
-    fiatCurrency: string = OnrampService.DEFAULT_FIAT_CURRENCY
+    cryptoAsset: string,
+    network: string = OnrampService.BASE_MAINNET,
+    fiatCurrency: string = OnrampService.DEFAULT_FIAT_CURRENCY,
   ): Promise<string | null> {
     try {
-      // Generate session token for Base mainnet with USDC
+      // Generate session token for the specified network and asset
       const sessionToken = await OnrampService.generateSessionToken(
         destinationAddress,
-        [OnrampService.BASE_MAINNET],
-        [OnrampService.USDC_ASSET]
+        [network],
+        [cryptoAsset],
       );
 
       if (!sessionToken) {
-        throw new Error('Failed to generate session token');
+        throw new Error("Failed to generate session token");
       }
 
       // Generate the onramp URL
-      const onrampUrl = OnrampService.generateOnrampUrl({
+      const onrampUrl = OnrampService.buildOnrampUrl({
         sessionToken,
         fiatAmount,
         fiatCurrency,
-        defaultAsset: OnrampService.USDC_ASSET,
-        defaultNetwork: OnrampService.BASE_MAINNET,
+        defaultAsset: cryptoAsset,
+        defaultNetwork: network,
         destinationAddress,
       });
 
       return onrampUrl;
     } catch (error) {
-      console.error('Error generating USDC onramp URL:', error);
+      console.error(`Error generating ${cryptoAsset} onramp URL:`, error);
       return null;
     }
   }
@@ -145,12 +152,12 @@ export class OnrampService {
     try {
       const onrampWindow = window.open(
         url,
-        'coinbase-onramp',
-        'width=500,height=700,scrollbars=yes,resizable=yes'
+        "coinbase-onramp",
+        "width=500,height=700,scrollbars=yes,resizable=yes",
       );
 
       if (!onrampWindow) {
-        console.warn('Failed to open onramp window - popup might be blocked');
+        console.warn("Failed to open onramp window - popup might be blocked");
         // Fallback to same window navigation
         window.location.href = url;
         return null;
@@ -158,7 +165,7 @@ export class OnrampService {
 
       return onrampWindow;
     } catch (error) {
-      console.error('Error opening onramp window:', error);
+      console.error("Error opening onramp window:", error);
       // Fallback to same window navigation
       window.location.href = url;
       return null;
@@ -169,30 +176,36 @@ export class OnrampService {
    * Validates onramp parameters before generating URL
    */
   static validateOnrampParams(params: OnrampQuoteParams): boolean {
-    const { fiatAmount, fiatCurrency, cryptoAsset, network, destinationAddress } = params;
+    const {
+      fiatAmount,
+      fiatCurrency,
+      cryptoAsset,
+      network,
+      destinationAddress,
+    } = params;
 
     if (!destinationAddress || destinationAddress.length !== 42) {
-      console.error('Invalid destination address');
+      console.error("Invalid destination address");
       return false;
     }
 
     if (fiatAmount <= 0) {
-      console.error('Fiat amount must be greater than 0');
+      console.error("Fiat amount must be greater than 0");
       return false;
     }
 
     if (!fiatCurrency || fiatCurrency.length !== 3) {
-      console.error('Invalid fiat currency code');
+      console.error("Invalid fiat currency code");
       return false;
     }
 
     if (!cryptoAsset) {
-      console.error('Crypto asset is required');
+      console.error("Crypto asset is required");
       return false;
     }
 
     if (!network) {
-      console.error('Network is required');
+      console.error("Network is required");
       return false;
     }
 

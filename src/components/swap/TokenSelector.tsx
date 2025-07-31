@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Check, ChevronDown, Search } from "lucide-react";
 import Image from "next/image";
 import {
@@ -36,7 +36,7 @@ export function TokenSelector({
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const tokens = Object.values(SUPPORTED_NETWORKS[network]);
+  const tokens = useMemo(() => Object.values(SUPPORTED_NETWORKS[network]), [network]);
   const { data: balances } = useTokenBalances(network, tokens);
 
   const availableTokens = tokens.filter(

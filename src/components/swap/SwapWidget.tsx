@@ -40,11 +40,12 @@ export function SwapWidget() {
 
   const isSignedIn = useIsSignedIn();
   const evmAddress = useEvmAddress();
-  const createSwapQuote = useCreateSwapQuote();
-  const executeSwap = useSwapExecution();
+  const { createQuote, isLoading: isCreateSwapQuoteLoading } =
+    useCreateSwapQuote();
+  const { executeSwap, isLoading: isExecuteSwapLoading } = useSwapExecution();
 
-  const tokens = Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]);
-  const { data: balances } = useTokenBalances(
+  const tokens = useMemo(() => Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]), [network]);
+  const { data: balances, refetch: refetchBalances } = useTokenBalances(
     network as SupportedNetwork,
     tokens,
   );
@@ -100,7 +101,7 @@ export function SwapWidget() {
     if (!fromToken || !toToken || !fromAmount) return;
 
     try {
-      const swapQuote = await createSwapQuote.mutateAsync({
+      const swapQuote = await createQuote({
         fromToken: fromToken.address,
         toToken: toToken.address,
         fromAmount: parseUnits(fromAmount, fromToken.decimals),
@@ -109,11 +110,13 @@ export function SwapWidget() {
         slippageBps: Math.round(slippage * 100),
       });
 
-      const result = await executeSwap.mutateAsync({
+      const result = await executeSwap({
         swapQuote,
         fromTokenAddress: fromToken.address,
         network,
       });
+
+      await refetchBalances();
 
       return result;
     } catch (error: any) {
@@ -131,7 +134,7 @@ export function SwapWidget() {
   const isValidAmount =
     fromAmount && !isNaN(Number(fromAmount)) && Number(fromAmount) > 0;
 
-  const isLoading = createSwapQuote.isPending || executeSwap.isPending;
+  const isLoading = isCreateSwapQuoteLoading || isExecuteSwapLoading;
 
   const canSwap = Boolean(
     isSignedIn &&

@@ -27,8 +27,8 @@ export function ConnectWalletModal({
   const [emailError, setEmailError] = useState("");
   const [otpError, setOtpError] = useState("");
 
-  const signInMutation = useSignIn();
-  const verifyOTPMutation = useVerifyOTP();
+  const { signIn, isLoading: isSigningIn } = useSignIn();
+  const { verifyOTP, isLoading: isVerifyingOtp } = useVerifyOTP();
 
   const handleSignIn = async () => {
     setEmailError("");
@@ -39,7 +39,7 @@ export function ConnectWalletModal({
     }
 
     try {
-      const result = await signInMutation.mutateAsync({ email });
+      const result = await signIn({ email });
       setFlowId(result.flowId);
     } catch (error) {
       setEmailError(formatError(error));
@@ -60,7 +60,7 @@ export function ConnectWalletModal({
     }
 
     try {
-      await verifyOTPMutation.mutateAsync({ flowId, otp });
+      await verifyOTP({ flowId, otp });
       onClose();
     } catch (error) {
       setOtpError(formatError(error));
@@ -91,7 +91,7 @@ export function ConnectWalletModal({
           <div className="text-center text-white text-[20px] font-medium tracking-tight">
             {isSignInStep
               ? "Sign in with email"
-              : `We’ve sent an OTP to ${email.slice(0, 1)}******${email.slice(email.indexOf('@')-2)}`}
+              : `We’ve sent an OTP to ${email.slice(0, 1)}******${email.slice(email.indexOf("@") - 2)}`}
           </div>
           <div className="text-center text-[#8B919D] text-[13px] font-normal tracking-tight">
             {isSignInStep
@@ -109,12 +109,12 @@ export function ConnectWalletModal({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 error={emailError}
-                disabled={signInMutation.isPending}
+                disabled={isSigningIn}
                 className="bg-[#141519] h-14 border-white/10 text-white placeholder-white/40"
               />
               <Button
                 onClick={handleSignIn}
-                isLoading={signInMutation.isPending}
+                isLoading={isSigningIn}
                 className="w-full h-12 bg-white hover:bg-white/90 text-black rounded-full font-medium"
                 disabled={!email}
               >
@@ -129,13 +129,13 @@ export function ConnectWalletModal({
                 value={otp}
                 onChange={(e) => setOtp(e.target.value)}
                 error={otpError}
-                disabled={verifyOTPMutation.isPending}
+                disabled={isVerifyingOtp}
                 maxLength={6}
                 className="bg-[#141519] h-14 border-white/10 text-white placeholder-white/40 tracking-widest"
               />
               <Button
                 onClick={handleVerifyOTP}
-                isLoading={verifyOTPMutation.isPending}
+                isLoading={isVerifyingOtp}
                 className="w-full h-12 bg-white hover:bg-white/90 text-black rounded-full font-medium"
                 disabled={!otp}
               >
