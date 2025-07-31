@@ -44,7 +44,10 @@ export function SwapWidget() {
     useCreateSwapQuote();
   const { executeSwap, isLoading: isExecuteSwapLoading } = useSwapExecution();
 
-  const tokens = useMemo(() => Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]), [network]);
+  const tokens = useMemo(
+    () => Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]),
+    [network],
+  );
   const { data: balances, refetch: refetchBalances } = useTokenBalances(
     network as SupportedNetwork,
     tokens,
@@ -85,9 +88,7 @@ export function SwapWidget() {
     const balance = getTokenBalance(fromToken.address);
     if (balance) {
       const rawBalance = balance.balance;
-      const formattedAmount = (
-        Number(rawBalance) / Math.pow(10, fromToken.decimals)
-      ).toString();
+      const formattedAmount = formatUnits(rawBalance, fromToken.decimals);
       setFromAmount(formattedAmount);
     }
   };
