@@ -89,7 +89,7 @@ export function TokenSelector({
         </button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-md bg-[#141519] border-white/10 p-6 max-h-[80vh] overflow-hidden">
+      <DialogContent className="sm:max-w-md bg-[#141519] border-white/10 p-3 py-5 max-h-[80vh] overflow-hidden">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-white text-md font-normal -mt-2">
             Select a token
@@ -97,7 +97,7 @@ export function TokenSelector({
         </DialogHeader>
 
         {/* Search Bar */}
-        <div className="relative">
+        <div className="relative -mt-5">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/40" />
           <Input
             placeholder="Search tokens"
@@ -108,14 +108,14 @@ export function TokenSelector({
         </div>
 
         {/* Network Filter Tabs */}
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2 max-h-8">
           {Object.entries(NETWORKS).map(([key, networkInfo]) => (
             <button
               key={key}
-              className={`flex items-center space-x-2 px-3 py-2 rounded-full text-sm font-medium ${
+              className={`flex items-center space-x-2 px-2 py-1.5 rounded-full text-sm tracking-tight ${
                 network === key.toLowerCase()
-                  ? "bg-white text-black"
-                  : "bg-[#2A2B2F] text-white/60 hover:bg-white/10"
+                  ? "bg-white text-[#0A0B0D]"
+                  : "bg-[#292B30] text-white/60 hover:bg-white/10"
               }`}
             >
               <Image
@@ -129,12 +129,19 @@ export function TokenSelector({
           ))}
         </div>
 
+        {/* Separator - Always visible */}
+        <div className="relative -mx-6">
+          <div className="absolute inset-0 flex items-center">
+            <div className="w-full border-t border-white/10" />
+          </div>
+        </div>
+
         {/* Header */}
         <div className="flex items-center justify-between px-1">
-          <span className="text-white/60 text-xs font-normal uppercase tracking-wide">
+          <span className="text-[#8B919D] text-xs font-normal tracking-tight uppercase">
             Your Tokens
           </span>
-          <span className="text-white/60 text-xs font-normal uppercase tracking-wide">
+          <span className="text-[#8B919D] text-xs font-normal tracking-tight uppercase">
             Balance
           </span>
         </div>
@@ -172,7 +179,7 @@ export function TokenSelector({
                         </div>
                       )}
                       {/* Network indicator */}
-                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded border border-[#141519]">
+                      <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-sm bg-white">
                         <Image
                           src={
                             NETWORKS[network === "base" ? "Base" : network]?.logoUrl ||
@@ -187,19 +194,19 @@ export function TokenSelector({
                     </div>
 
                     <div className="flex-1 text-left min-w-0">
-                      <div className="font-medium text-sm text-white truncate">
-                        {token.symbol}
-                      </div>
-                      <div className="text-xs text-white/60 truncate">
+                      <div className="font-normal text-sm text-white truncate tracking-tight">
                         {token.name}
+                      </div>
+                      <div className="text-xs text-[#8B919D] truncate tracking-tight">
+                        ${token.symbol}
                       </div>
                     </div>
 
                     <div className="text-right flex-shrink-0">
-                      <div className="font-medium text-sm text-white">
+                      <div className="font-normal text-sm text-white tracking-tight">
                         {balance?.formattedBalance || "0.00"}
                       </div>
-                      <div className="text-xs text-white/60">
+                      <div className="text-xs text-[#8B919D] tracking-tight">
                         ${balance?.usdValue?.toFixed(2) || "0.00"}
                       </div>
                     </div>
