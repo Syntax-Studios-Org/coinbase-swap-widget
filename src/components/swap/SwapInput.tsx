@@ -51,7 +51,7 @@ export function SwapInput({
           </div>
         )}
       </div>
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-0 md:space-x-3">
         <input
           type={readOnly ? "text" : "number"}
           placeholder="0.00"
@@ -70,7 +70,7 @@ export function SwapInput({
             }
           } : undefined}
           readOnly={readOnly}
-          className={`coinbase-sans bg-transparent placeholder-white/40 border-none outline-none flex-1 text-2xl font-medium ${
+          className={`coinbase-sans bg-transparent placeholder-white/40 border-none outline-none flex-1 max-w-[205px] md:max-w-full text-2xl font-medium ${
             hasError ? 'text-[#DF6A70]' : 'text-white'
           }`}
           min="0"
