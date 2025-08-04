@@ -64,11 +64,6 @@ export function UserDropdown({ slippage, onSlippageChange }: UserDropdownProps) 
               </div>
             </div>
 
-            {/* Wallet Balance */}
-            <div className="text-sm text-white/60">
-              Wallet Balance: $0.00
-            </div>
-
             {/* Slippage Setting */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">

@@ -84,7 +84,6 @@ export function SwapInput({
           excludeToken={excludeToken}
         />
       </div>
-      <div className="text-white/40 text-sm mt-1">$0.00</div>
     </div>
   );
 }

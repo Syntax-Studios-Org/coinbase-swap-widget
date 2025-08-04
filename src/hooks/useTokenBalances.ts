@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { formatUnits } from "viem";
+import { SWAP_CONFIG } from "@/constants/config";
 import type { Token, TokenBalance, TokenBalancesApiResponse, ApiTokenBalance } from "@/types/swap";
 import type { SupportedNetwork } from "@/constants/tokens";
 
@@ -42,6 +43,7 @@ export const useTokenBalances = (network: SupportedNetwork, tokens: Token[]) => 
           balance.token.contractAddress?.toLowerCase() === token.address.toLowerCase()
         );
 
+        // Use BigInt for precise token amounts to avoid JavaScript floating point errors
         const balance = apiBalance ? BigInt(apiBalance.amount.amount) : BigInt(0);
         const decimals = apiBalance ? apiBalance.amount.decimals : token.decimals;
         const formattedBalance = formatUnits(balance, decimals);
@@ -75,8 +77,8 @@ export const useTokenBalances = (network: SupportedNetwork, tokens: Token[]) => 
   useEffect(() => {
     fetchBalances();
     
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchBalances, 30000);
+    // Auto-refresh token balances
+    const interval = setInterval(fetchBalances, SWAP_CONFIG.BALANCE_REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, [fetchBalances]);
 

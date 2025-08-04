@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { SwapService } from "@/services/swap.service";
+import { SWAP_CONFIG } from "@/constants/config";
 import type {
   SwapParams,
   Token,
@@ -61,8 +62,8 @@ export const useSwapPrice = (
   useEffect(() => {
     fetchPrice();
 
-    // Auto-refresh every 10 seconds for fresh prices
-    const interval = setInterval(fetchPrice, 10000);
+    // Auto-refresh for fresh prices
+    const interval = setInterval(fetchPrice, SWAP_CONFIG.PRICE_REFRESH_INTERVAL);
     return () => clearInterval(interval);
   }, [fetchPrice]);
 

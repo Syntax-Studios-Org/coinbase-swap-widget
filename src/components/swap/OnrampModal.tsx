@@ -30,27 +30,22 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
   const [paymentCurrency, setPaymentCurrency] = useState("USD");
   const [paymentMethod, setPaymentMethod] = useState("Debit Card");
 
-  const { generateOnrampUrl, state } = useOnramp();
+  const { generateOnrampUrl, state: onrampState } = useOnramp();
 
   const handleAmountPreset = (value: number) => {
     setAmount(value.toString());
   };
 
   const handleCreateSession = async () => {
-    if (!amount || state.isLoading || state.isGeneratingUrl) return;
+    if (!amount || onrampState.isLoading || onrampState.isGeneratingUrl) return;
 
     try {
-      // Map network display name to service network identifier
-      const networkMap: Record<string, string> = {
-        "Base": "base"
-      };
-      
       const sessionUrl = await generateOnrampUrl({
         destinationAddress: "0x" as any, // Will be replaced by actual address in hook
         fiatAmount: parseFloat(amount),
         fiatCurrency: paymentCurrency as any,
         cryptoAsset: selectedAsset as any,
-        network: (networkMap[selectedNetwork] || selectedNetwork.toLowerCase()) as any,
+        network: (NETWORKS[selectedNetwork].name || selectedNetwork.toLowerCase()) as any,
         paymentMethod: paymentMethod as any,
       });
 
@@ -271,8 +266,8 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
           {/* Request Link Button */}
           <Button
             onClick={handleCreateSession}
-            disabled={!amount || state.isLoading || state.isGeneratingUrl}
-            isLoading={state.isLoading || state.isGeneratingUrl}
+            disabled={!amount || onrampState.isLoading || onrampState.isGeneratingUrl}
+            isLoading={onrampState.isLoading || onrampState.isGeneratingUrl}
             className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium rounded-full"
           >
             Request link
