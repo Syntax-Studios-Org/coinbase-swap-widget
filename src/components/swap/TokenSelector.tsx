@@ -206,9 +206,6 @@ export function TokenSelector({
                       <div className="font-normal text-sm text-white tracking-tight">
                         {balance?.formattedBalance || "0.00"}
                       </div>
-                      <div className="text-xs text-[#8B919D] tracking-tight">
-                        ${balance?.usdValue?.toFixed(2) || "0.00"}
-                      </div>
                     </div>
 
                     {selectedToken?.address === token.address && (

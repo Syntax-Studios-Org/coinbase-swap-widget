@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { ArrowUpDown } from "lucide-react";
+import { formatUnits } from "viem";
 import { Button, Input } from "@/components/ui";
 import { TokenSelector } from "./TokenSelector";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
@@ -124,11 +125,8 @@ export function SwapForm({
               type="text"
               placeholder="0.0"
               value={
-                quote
-                  ? (
-                      parseFloat(quote.toAmount.toString()) /
-                      Math.pow(10, toToken?.decimals || 18)
-                    ).toFixed(6)
+                quote && toToken
+                  ? formatUnits(quote.toAmount, toToken.decimals)
                   : ""
               }
               readOnly

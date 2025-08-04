@@ -42,13 +42,13 @@ export async function POST(request: NextRequest) {
       walletSecret,
     });
 
-    // Get swap price from CDP
+    // Get swap price quote from CDP - includes routing, fees, and liquidity check
     const swapPrice = await cdp.evm.getSwapPrice({
       network: network as any,
       toToken,
       fromToken,
       fromAmount: BigInt(fromAmount),
-      taker,
+      taker, // User's wallet address
     });
 
     if (!swapPrice.liquidityAvailable) {

@@ -33,7 +33,7 @@ export function SwapWidget() {
     setNetwork,
     swapTokens,
   } = useSwapState();
-  const [slippage, setSlippage] = useState(1.0);
+  const [slippage, setSlippage] = useState(1.0); // Slippage tolerance: max acceptable price movement %
   const [showTradeDetails, setShowTradeDetails] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -256,25 +256,13 @@ export function SwapWidget() {
             </div>
             {quote.fees?.protocolFee && (
               <div className="flex justify-between text-white/60">
-                <span>Coinbase fee</span>
+                <span>Transaction fee</span>
                 <span>
                   {formatUnits(
                     BigInt(quote.fees?.protocolFee.amount || "0"),
                     getTokenDecimals(quote.fees.protocolFee.token, network),
                   )}{" "}
                   {getTokenSymbol(quote.fees.protocolFee.token, network)}
-                </span>
-              </div>
-            )}
-            {quote.fees?.gasFee && (
-              <div className="flex justify-between text-white/60">
-                <span>Network Fee</span>
-                <span>
-                  {formatUnits(
-                    BigInt(quote.fees?.gasFee.amount || "0"),
-                    getTokenDecimals(quote.fees.gasFee.token, network),
-                  )}{" "}
-                  {getTokenSymbol(quote.fees.gasFee.token, network)}
                 </span>
               </div>
             )}

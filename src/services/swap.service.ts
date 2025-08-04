@@ -1,3 +1,4 @@
+import { SWAP_CONFIG } from "@/constants/config";
 import type { SwapParams, SwapQuote, Token } from "@/types/swap";
 
 export class SwapService {
@@ -54,7 +55,7 @@ export class SwapService {
           fromAmount: params.fromAmount.toString(),
           network: params.network,
           taker: params.taker,
-          slippageBps: params.slippageBps || 100,
+          slippageBps: params.slippageBps || SWAP_CONFIG.DEFAULT_SLIPPAGE_BPS,
         }),
       });
 

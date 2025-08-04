@@ -12,6 +12,12 @@ export const API_CONFIG = {
   staleTime: 60 * 1000, // 1 minute
 } as const;
 
+export const SWAP_CONFIG = {
+  PRICE_REFRESH_INTERVAL: 10 * 1000, // 10 seconds - auto-refresh swap quotes
+  BALANCE_REFRESH_INTERVAL: 30 * 1000, // 30 seconds - auto-refresh token balances
+  DEFAULT_SLIPPAGE_BPS: 100, // 1% slippage tolerance
+} as const;
+
 export const VALIDATION_CONFIG = {
   otpLength: 6,
   emailRegex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
@@ -44,42 +50,13 @@ export const ONRAMP_CONFIG = {
   sessionTokenExpiry: 120, // 2 minutes
 } as const;
 
-export const SUPPORTED_ONRAMP_NETWORKS = {
-  base: {
-    name: "Base",
-    chainId: 8453,
-    blockchainIdentifier: "base",
-  },
-} as const;
-
-export const SUPPORTED_ONRAMP_ASSETS = {
-  USDC: {
-    symbol: "USDC",
-    name: "USD Coin",
-    decimals: 6,
-    networks: ["base"],
-  },
-} as const;
-
-export const SUPPORTED_FIAT_CURRENCIES = {
-  USD: {
-    symbol: "USD",
-    name: "US Dollar",
-    code: "USD",
-  },
-} as const;
-
-export const ONRAMP_PAYMENT_METHODS = {
-  CARD: "Credit/Debit Card",
-  ACH_BANK_ACCOUNT: "Bank Account (ACH)",
-  APPLE_PAY: "Apple Pay",
-  CRYPTO_ACCOUNT: "Coinbase Account",
-  FIAT_WALLET: "Coinbase Wallet",
-} as const;
-
-export const NETWORKS = {
+export const NETWORKS: Record<
+  string,
+  { name: string; logoUrl: string; explorerUrl: string }
+> = {
   Base: {
     name: "Base",
     logoUrl: "/icons/base.svg",
+    explorerUrl: "https://basescan.org",
   },
 } as const;

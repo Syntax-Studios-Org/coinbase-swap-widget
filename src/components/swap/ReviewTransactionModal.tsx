@@ -12,6 +12,7 @@ import type { Token, SwapQuote } from "@/types/swap";
 import { formatUnits } from "viem";
 import { getTokenDecimals, getTokenSymbol } from "@/utils/tokens";
 import Image from "next/image";
+import { NETWORKS } from "@/constants/config";
 
 interface ReviewTransactionModalProps {
   isOpen: boolean;
@@ -74,8 +75,12 @@ export function ReviewTransactionModal({
   };
 
   const getExplorerUrl = (hash: string) => {
-    // Dynamic based on network - for now defaulting to Base
-    return `https://basescan.org/tx/${hash}`;
+    // Find the network
+    const currentNetwork = Object.entries(NETWORKS).find(([key, value]) => key.toLowerCase() === network.toLowerCase());
+    if (!currentNetwork) return '';
+
+    // Get the explorer URL
+    return `${currentNetwork[1].explorerUrl}/tx/${hash}`;
   };
 
   return (
@@ -170,7 +175,7 @@ export function ReviewTransactionModal({
                   {quote.fees?.protocolFee && (
                     <div className="flex justify-between text-white/60">
                       <div className="flex items-center gap-1">
-                        <span>Coinbase fee</span>
+                        <span>Transaction fee</span>
                       </div>
                       <span className="text-blue-400">
                         {formatUnits(
@@ -180,20 +185,6 @@ export function ReviewTransactionModal({
                             network,
                           ),
                         )} {getTokenSymbol(quote.fees?.protocolFee.token, network)}
-                      </span>
-                    </div>
-                  )}
-                  {quote.fees?.gasFee && (
-                    <div className="flex justify-between text-white/60">
-                      <div className="flex items-center gap-1">
-                        <span>Network fee</span>
-                      </div>
-                      <span>
-                        {formatUnits(
-                          BigInt(quote.fees?.gasFee.amount || "0"),
-                          getTokenDecimals(quote.fees.gasFee.token, network),
-                        )}{" "}
-                        {getTokenSymbol(quote.fees.gasFee.token, network)}
                       </span>
                     </div>
                   )}

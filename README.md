@@ -2,6 +2,19 @@
 
 A production-ready swap and onramp widget built with Coinbase Developer Platform (CDP) that enables seamless token swapping and crypto purchasing on Base network. Features a modern dark theme design with Coinbase Sans fonts and comprehensive error handling.
 
+## Quick Start
+
+```bash
+git clone https://github.com/Suhel-Kap/coinbase-swap-widget.git
+cd coinbase-swap-widget
+npm install
+cp .env.example .env.local
+# Add your CDP keys from https://portal.cdp.coinbase.com/
+npm run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000) to view the application.
+
 ## Features
 
 ### 🔄 Token Swapping
@@ -73,7 +86,9 @@ src/
 
 - Node.js 18+
 - npm, yarn, or pnpm
-- Coinbase Developer Platform API keys
+- Coinbase Developer Platform API keys from [CDP Portal](https://portal.cdp.coinbase.com/)
+
+> This demo uses Coinbase's newly introduced CDP frontend library for embedded wallets, providing seamless email-based authentication and wallet management.
 
 ### Environment Setup
 
