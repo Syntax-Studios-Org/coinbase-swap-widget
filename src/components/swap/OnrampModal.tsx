@@ -172,8 +172,28 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full p-3 pl-10 border border-[#292B30] rounded-sm bg-[#141519] text-white placeholder-white/40"
+                className="w-full p-3 pl-10 pr-32 border border-[#292B30] rounded-sm bg-[#141519] text-white placeholder-white/40"
               />
+              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
+                <button
+                  onClick={() => handleAmountPreset(20)}
+                  className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                >
+                  $20
+                </button>
+                <button
+                  onClick={() => handleAmountPreset(50)}
+                  className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                >
+                  $50
+                </button>
+                <button
+                  onClick={() => handleAmountPreset(100)}
+                  className="px-2 py-1 text-xs text-white/60 hover:text-white hover:bg-white/10 rounded transition-colors"
+                >
+                  $100
+                </button>
+              </div>
             </div>
           </div>
 
