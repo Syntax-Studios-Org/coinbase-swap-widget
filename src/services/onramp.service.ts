@@ -136,6 +136,7 @@ export class OnrampService {
         defaultAsset: cryptoAsset,
         defaultNetwork: network,
         destinationAddress,
+        redirectUrl: process.env.NEXT_PUBLIC_REDIRECT_URL,
       });
 
       return onrampUrl;

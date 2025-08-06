@@ -32,12 +32,14 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
 
   const { generateOnrampUrl, state: onrampState } = useOnramp();
 
+  const isAmountValid = amount && parseFloat(amount) >= 2;
+
   const handleAmountPreset = (value: number) => {
     setAmount(value.toString());
   };
 
   const handleCreateSession = async () => {
-    if (!amount || onrampState.isLoading || onrampState.isGeneratingUrl) return;
+    if (!amount || !isAmountValid || onrampState.isLoading || onrampState.isGeneratingUrl) return;
 
     try {
       const sessionUrl = await generateOnrampUrl({
@@ -172,6 +174,7 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
                 placeholder="0"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
+                min={2}
                 className="w-full p-3 pl-10 pr-32 border border-[#292B30] rounded-sm bg-[#141519] text-white placeholder-white/40"
               />
               <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex space-x-1">
@@ -195,6 +198,11 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
                 </button>
               </div>
             </div>
+            {!isAmountValid && amount && (
+              <p className="text-red-500 text-xs mt-2">
+                Minimum amount is $2
+              </p>
+            )}
           </div>
 
           {/* Payment Currency */}
@@ -266,7 +274,7 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
           {/* Request Link Button */}
           <Button
             onClick={handleCreateSession}
-            disabled={!amount || onrampState.isLoading || onrampState.isGeneratingUrl}
+            disabled={!amount || !isAmountValid || onrampState.isLoading || onrampState.isGeneratingUrl}
             isLoading={onrampState.isLoading || onrampState.isGeneratingUrl}
             className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium rounded-full"
           >
