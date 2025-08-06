@@ -32,6 +32,7 @@ export class SwapService {
         toAmount: BigInt(data.toAmount),
         minToAmount: BigInt(data.minToAmount),
         gas: BigInt(data.gas),
+        gasPrice: BigInt(data.gasPrice),
         liquidityAvailable: data.liquidityAvailable,
         fees: data.fees,
         issues: data.issues,

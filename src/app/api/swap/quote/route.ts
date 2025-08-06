@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       toAmount: swapPrice.toAmount.toString(),
       minToAmount: swapPrice.minToAmount.toString(),
       gas: (swapPrice.gas || 0n).toString(),
+      gasPrice: (swapPrice.gasPrice || 0n).toString(),
       liquidityAvailable: swapPrice.liquidityAvailable,
       issues: {
         allowance: swapPrice.issues?.allowance ? {
