@@ -45,7 +45,7 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
         fiatAmount: parseFloat(amount),
         fiatCurrency: paymentCurrency as any,
         cryptoAsset: selectedAsset as any,
-        network: (NETWORKS[selectedNetwork].name || selectedNetwork.toLowerCase()) as any,
+        network: (NETWORKS[selectedNetwork].name.toLowerCase() || selectedNetwork.toLowerCase()) as any,
         paymentMethod: paymentMethod as any,
       });
 
