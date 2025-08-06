@@ -93,6 +93,7 @@ export async function POST(request: NextRequest) {
       addresses,
       ...(assets && { assets }),
     };
+    console.log(requestBody, ...requestBody.addresses)
 
     // Make request to Coinbase API
     const response = await fetch(cdpApiUrl, {
