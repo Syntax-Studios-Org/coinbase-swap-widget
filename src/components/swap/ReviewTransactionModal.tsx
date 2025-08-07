@@ -219,16 +219,6 @@ export function ReviewTransactionModal({
                   <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                 </div>
               </div>
-
-              {/* View on Explorer Button */}
-              <Button
-                onClick={() =>
-                  txHash && window.open(getExplorerUrl(txHash), "_blank")
-                }
-                className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium rounded-full"
-              >
-                View on explorer
-              </Button>
             </>
           )}
 
