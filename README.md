@@ -108,6 +108,7 @@ NEXT_PUBLIC_CDP_PROJECT_ID=your_cdp_project_id
 CDP_API_KEY_ID=your_api_key_id
 CDP_API_KEY_SECRET=your_api_key_secret
 CDP_WALLET_SECRET=your_wallet_secret
+NEXT_PUBLIC_REDIRECT_URL=<your-redirect-url>
 ```
 
 ### Installation
