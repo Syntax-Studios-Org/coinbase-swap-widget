@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { Button } from "@/components/ui";
 import { UserDropdown } from "./UserDropdown";
@@ -44,10 +44,10 @@ export function SwapWidget() {
     useCreateSwapQuote();
   const { executeSwap, isLoading: isExecuteSwapLoading } = useSwapExecution();
 
-  const tokens = useMemo(
-    () => Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]),
-    [network],
-  );
+  const tokens = useMemo(() => {
+    const supportedNetwork = SUPPORTED_NETWORKS[network as SupportedNetwork];
+    return supportedNetwork ? Object.values(supportedNetwork) : [];
+  }, [network]);
   const { data: balances, refetch: refetchBalances } = useTokenBalances(
     network as SupportedNetwork,
     tokens,
@@ -58,6 +58,15 @@ export function SwapWidget() {
       (b) => b.token.address.toLowerCase() === tokenAddress.toLowerCase(),
     );
   };
+
+  // Handle network change and reset tokens
+  const handleNetworkChange = useCallback((newNetwork: SupportedNetwork) => {
+    setNetwork(newNetwork);
+    // Reset tokens when network changes since they might not exist on the new network
+    setFromToken(null);
+    setToToken(null);
+    setFromAmount("");
+  }, [setNetwork, setFromToken, setToToken, setFromAmount]);
 
   // Get swap price quote to check if swap is possible
   const parsedAmount = useMemo(() => {
@@ -185,6 +194,7 @@ export function SwapWidget() {
           network={network as SupportedNetwork}
           excludeToken={toToken}
           hasError={hasInsufficientBalance}
+          onNetworkChange={handleNetworkChange}
         />
 
         {/* Separator line with swap button */}
@@ -216,6 +226,7 @@ export function SwapWidget() {
           readOnly={true}
           network={network as SupportedNetwork}
           excludeToken={fromToken}
+          onNetworkChange={handleNetworkChange}
         />
       </div>
 

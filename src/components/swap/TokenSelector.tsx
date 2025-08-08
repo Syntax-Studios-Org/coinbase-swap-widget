@@ -24,6 +24,7 @@ interface TokenSelectorProps {
   network: SupportedNetwork;
   label: string;
   excludeToken?: Token | null;
+  onNetworkChange?: (network: SupportedNetwork) => void;
 }
 
 export function TokenSelector({
@@ -32,6 +33,7 @@ export function TokenSelector({
   network,
   label,
   excludeToken,
+  onNetworkChange,
 }: TokenSelectorProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -109,24 +111,33 @@ export function TokenSelector({
 
         {/* Network Filter Tabs */}
         <div className="flex items-center space-x-2 max-h-8">
-          {Object.entries(NETWORKS).map(([key, networkInfo]) => (
-            <button
-              key={key}
-              className={`flex items-center space-x-2 px-2 py-1.5 rounded-full text-sm tracking-tight ${
-                network === key.toLowerCase()
-                  ? "bg-white text-[#0A0B0D]"
-                  : "bg-[#292B30] text-white/60 hover:bg-white/10"
-              }`}
-            >
-              <Image
-                src={networkInfo.logoUrl}
-                alt={networkInfo.name}
-                width={16}
-                height={16}
-              />
-              <span>{networkInfo.name}</span>
-            </button>
-          ))}
+          {Object.entries(NETWORKS).map(([key, networkInfo]) => {
+            // Map UI network names to SUPPORTED_NETWORKS keys
+            const networkKeyMap: Record<string, SupportedNetwork> = {
+              'Base': 'base',
+              'Ethereum': 'ethereum',
+            };
+            const networkKey = networkKeyMap[key];
+            return (
+              <button
+                key={key}
+                onClick={() => onNetworkChange?.(networkKey)}
+                className={`flex items-center space-x-2 px-2 py-1.5 rounded-full text-sm tracking-tight transition-colors ${
+                  network === networkKey
+                    ? "bg-white text-[#0A0B0D]"
+                    : "bg-[#292B30] text-white/60 hover:bg-white/10"
+                }`}
+              >
+                <Image
+                  src={networkInfo.logoUrl}
+                  alt={networkInfo.name}
+                  width={16}
+                  height={16}
+                />
+                <span>{networkInfo.name}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Separator - Always visible */}
@@ -182,8 +193,14 @@ export function TokenSelector({
                       <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-sm bg-white">
                         <Image
                           src={
-                            NETWORKS[network === "base" ? "Base" : network]?.logoUrl ||
-                            "/icons/base.svg"
+                            (() => {
+                              const networkDisplayMap: Record<SupportedNetwork, string> = {
+                                'base': 'Base',
+                                'ethereum': 'Ethereum',
+                              };
+                              const displayKey = networkDisplayMap[network];
+                              return NETWORKS[displayKey]?.logoUrl || "/icons/base.svg";
+                            })()
                           }
                           alt={network}
                           width={14}

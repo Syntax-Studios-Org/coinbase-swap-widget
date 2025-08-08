@@ -83,33 +83,6 @@ export const useOnramp = (): UseOnrampReturn => {
     [evmAddress],
   );
 
-  const openOnramp = useCallback(
-    async (params: GenerateOnrampUrlRequest): Promise<void> => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
-
-      try {
-        const url = await generateOnrampUrl(params);
-
-        if (!url) {
-          throw new Error("Failed to generate onramp URL");
-        }
-
-        // Open the onramp URL
-        OnrampService.openOnrampWindow(url);
-
-        setState((prev) => ({ ...prev, isLoading: false }));
-      } catch (error) {
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          error:
-            error instanceof Error ? error.message : "Unknown error occurred",
-        }));
-      }
-    },
-    [generateOnrampUrl],
-  );
-
   const reset = useCallback(() => {
     setState({
       isLoading: false,
@@ -122,7 +95,6 @@ export const useOnramp = (): UseOnrampReturn => {
 
   return {
     generateOnrampUrl,
-    openOnramp,
     state,
     reset,
   };

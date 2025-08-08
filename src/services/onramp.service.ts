@@ -8,7 +8,7 @@ import type { Address } from "viem";
 
 export class OnrampService {
   private static readonly COINBASE_PAY_BASE_URL =
-    "https://pay.coinbase.com/buy/select-asset";
+    "https://pay-sandbox.coinbase.com";
   private static readonly BASE_MAINNET = "base";
   private static readonly USDC_ASSET = "USDC";
   private static readonly DEFAULT_FIAT_CURRENCY = "USD";
@@ -142,33 +142,6 @@ export class OnrampService {
       return onrampUrl;
     } catch (error) {
       console.error(`Error generating ${cryptoAsset} onramp URL:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Opens the onramp URL in a new window/tab
-   */
-  static openOnrampWindow(url: string): Window | null {
-    try {
-      const onrampWindow = window.open(
-        url,
-        "coinbase-onramp",
-        "width=500,height=700,scrollbars=yes,resizable=yes",
-      );
-
-      if (!onrampWindow) {
-        console.warn("Failed to open onramp window - popup might be blocked");
-        // Fallback to same window navigation
-        window.location.href = url;
-        return null;
-      }
-
-      return onrampWindow;
-    } catch (error) {
-      console.error("Error opening onramp window:", error);
-      // Fallback to same window navigation
-      window.location.href = url;
       return null;
     }
   }

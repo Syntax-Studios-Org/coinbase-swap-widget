@@ -135,7 +135,6 @@ export interface UseOnrampReturn {
   generateOnrampUrl: (
     params: GenerateOnrampUrlRequest,
   ) => Promise<string | null>;
-  openOnramp: (params: GenerateOnrampUrlRequest) => Promise<void>;
   state: OnrampState;
   reset: () => void;
 }
