@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from "react";
 import { useEvmAddress } from "@coinbase/cdp-hooks";
 import { SwapService } from "@/services/swap.service";
 import { SWAP_CONFIG } from "@/constants/config";
-import { performanceTracker, PERF_OPERATIONS } from "@/utils/performance";
 import type {
   SwapParams,
   Token,
@@ -34,14 +33,6 @@ export const useSwapPrice = (
       return;
     }
 
-    const operationId = `${PERF_OPERATIONS.QUOTE_FETCH}-${Date.now()}`;
-    performanceTracker.startTiming(operationId, {
-      fromToken: fromToken.symbol,
-      toToken: toToken.symbol,
-      network,
-      fromAmount: fromAmount.toString(),
-    });
-
     setIsLoading(true);
     setError(null);
 
@@ -60,14 +51,9 @@ export const useSwapPrice = (
         quote.toToken = toToken;
       }
       setData(quote);
-      performanceTracker.endTiming(operationId, { success: true, hasQuote: !!quote });
     } catch (err) {
       setError(err instanceof Error ? err : new Error("Failed to fetch price"));
       setData(null);
-      performanceTracker.endTiming(operationId, { 
-        success: false, 
-        error: err instanceof Error ? err.message : 'Unknown error' 
-      });
     } finally {
       setIsLoading(false);
     }
