@@ -41,7 +41,10 @@ export function SwapForm({
   setFromAmount,
   swapTokens,
 }: SwapFormProps) {
-  const tokens = useMemo(() => Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]), [network]);
+  const tokens = useMemo(() => {
+    const supportedNetwork = SUPPORTED_NETWORKS[network as SupportedNetwork];
+    return supportedNetwork ? Object.values(supportedNetwork) : [];
+  }, [network]);
   const { data: balances } = useTokenBalances(
     network as SupportedNetwork,
     tokens,

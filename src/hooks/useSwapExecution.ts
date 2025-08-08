@@ -21,6 +21,7 @@ import {
   createBasePublicClient,
   waitForTransactionConfirmation,
 } from "@/lib/transaction-helper";
+import { performanceTracker, PERF_OPERATIONS } from "@/utils/performance";
 
 interface SwapExecutionParams {
   swapQuote: SwapQuoteResponse;
@@ -147,73 +148,115 @@ export const useSwapExecution = () => {
     fromTokenAddress,
     network,
   }: SwapExecutionParams): Promise<{ transactionHash: string }> => {
-    if (!evmAddress) {
-      throw new Error("Wallet not connected");
-    }
+    return performanceTracker.measureAsync(
+      PERF_OPERATIONS.SWAP_EXECUTION,
+      async () => {
+        if (!evmAddress) {
+          throw new Error("Wallet not connected");
+        }
 
-    setIsLoading(true);
-    setError(null);
+        setIsLoading(true);
+        setError(null);
 
-    try {
-      if (swapQuote.issues?.allowance) {
-        await handleTokenApproval(
-          swapQuote.issues.allowance,
-          fromTokenAddress,
-          network,
-          BigInt(swapQuote.fromAmount),
-        );
+        try {
+          // Handle token approval if needed
+          if (swapQuote.issues?.allowance) {
+            await performanceTracker.measureAsync(
+              'token-approval',
+              () => handleTokenApproval(
+                swapQuote.issues.allowance!,
+                fromTokenAddress,
+                network,
+                BigInt(swapQuote.fromAmount),
+              ),
+              { tokenAddress: fromTokenAddress, network }
+            );
+          }
+
+          // Handle permit2 signature if needed
+          let txData = swapQuote.transaction.data as Hex;
+          if (swapQuote.permit2?.eip712) {
+            const permitSignature = await performanceTracker.measureAsync(
+              'permit2-signature',
+              () => signPermit2Message(swapQuote.permit2!),
+              { network }
+            );
+            txData = concat([txData, permitSignature]);
+          }
+
+          console.log("Executing swap...");
+          
+          // Execute the swap transaction
+          const swapTx = await performanceTracker.measureAsync(
+            PERF_OPERATIONS.SWAP_TRANSACTION,
+            () => sendTransaction({
+              evmAccount: evmAddress,
+              network: network as any,
+              transaction: {
+                to: swapQuote.transaction.to as `0x${string}`,
+                data: txData,
+                value: BigInt(swapQuote.transaction.value),
+                gas: swapQuote.transaction.gas
+                  ? BigInt(swapQuote.transaction.gas)
+                  : 500000n,
+                maxFeePerGas: swapQuote.transaction.gasPrice
+                  ? BigInt(swapQuote.transaction.gasPrice)
+                  : 10000000n,
+                maxPriorityFeePerGas: swapQuote.transaction.gasPrice
+                  ? BigInt(
+                      Math.min(
+                        Math.floor(Number(swapQuote.transaction.gasPrice) * 0.1),
+                        1000000000,
+                      ),
+                    )
+                  : 1000000000n,
+                chainId: getChainId(network),
+                type: "eip1559" as const,
+              },
+            }),
+            {
+              network,
+              to: swapQuote.transaction.to,
+              value: swapQuote.transaction.value,
+              gas: swapQuote.transaction.gas,
+            }
+          );
+
+          // Wait for transaction confirmation
+          await performanceTracker.measureAsync(
+            PERF_OPERATIONS.SWAP_CONFIRMATION,
+            () => waitForTransactionConfirmation(
+              publicClient,
+              swapTx.transactionHash,
+              "Swap transaction",
+            ),
+            {
+              network,
+              transactionHash: swapTx.transactionHash,
+            }
+          );
+
+          const result = { transactionHash: swapTx.transactionHash };
+          console.log("Swap completed successfully:", result.transactionHash);
+          return result;
+        } catch (err) {
+          const error = err instanceof Error ? err : new Error('Swap execution failed');
+          setError(error);
+          console.error("Swap failed:", error);
+          throw error;
+        } finally {
+          setIsLoading(false);
+        }
+      },
+      {
+        network,
+        fromTokenAddress,
+        fromAmount: swapQuote.fromAmount,
+        toAmount: swapQuote.toAmount,
+        hasAllowanceIssue: !!swapQuote.issues?.allowance,
+        hasPermit2: !!swapQuote.permit2?.eip712,
       }
-
-      let txData = swapQuote.transaction.data as Hex;
-      if (swapQuote.permit2?.eip712) {
-        const permitSignature = await signPermit2Message(swapQuote.permit2);
-        txData = concat([txData, permitSignature]);
-      }
-
-      console.log("Executing swap...");
-      const swapTx = await sendTransaction({
-        evmAccount: evmAddress,
-        network: network as any,
-        transaction: {
-          to: swapQuote.transaction.to as `0x${string}`,
-          data: txData,
-          value: BigInt(swapQuote.transaction.value),
-          gas: swapQuote.transaction.gas
-            ? BigInt(swapQuote.transaction.gas)
-            : 500000n,
-          maxFeePerGas: swapQuote.transaction.gasPrice
-            ? BigInt(swapQuote.transaction.gasPrice)
-            : 10000000n,
-          maxPriorityFeePerGas: swapQuote.transaction.gasPrice
-            ? BigInt(
-                Math.min(
-                  Math.floor(Number(swapQuote.transaction.gasPrice) * 0.1),
-                  1000000000,
-                ),
-              )
-            : 1000000000n,
-          chainId: getChainId(network),
-          type: "eip1559" as const,
-        },
-      });
-
-      await waitForTransactionConfirmation(
-        publicClient,
-        swapTx.transactionHash,
-        "Swap transaction",
-      );
-
-      const result = { transactionHash: swapTx.transactionHash };
-      console.log("Swap completed successfully:", result.transactionHash);
-      return result;
-    } catch (err) {
-      const error = err instanceof Error ? err : new Error('Swap execution failed');
-      setError(error);
-      console.error("Swap failed:", error);
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
+    );
   }, [evmAddress, sendTransaction, signTypedData, publicClient, handleTokenApproval, signPermit2Message]);
 
   return { executeSwap, isLoading, error };

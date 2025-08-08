@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { formatUnits, parseUnits } from "viem";
 import { Button } from "@/components/ui";
 import { UserDropdown } from "./UserDropdown";
@@ -20,6 +20,7 @@ import type { SupportedNetwork } from "@/constants/tokens";
 import Image from "next/image";
 import { OnrampButton } from "./OnrampButton";
 import { getTokenDecimals, getTokenSymbol } from "@/utils/tokens";
+import { performanceTracker, PERF_OPERATIONS } from "@/utils/performance";
 
 export function SwapWidget() {
   const {
@@ -44,10 +45,10 @@ export function SwapWidget() {
     useCreateSwapQuote();
   const { executeSwap, isLoading: isExecuteSwapLoading } = useSwapExecution();
 
-  const tokens = useMemo(
-    () => Object.values(SUPPORTED_NETWORKS[network as SupportedNetwork]),
-    [network],
-  );
+  const tokens = useMemo(() => {
+    const supportedNetwork = SUPPORTED_NETWORKS[network as SupportedNetwork];
+    return supportedNetwork ? Object.values(supportedNetwork) : [];
+  }, [network]);
   const { data: balances, refetch: refetchBalances } = useTokenBalances(
     network as SupportedNetwork,
     tokens,
@@ -58,6 +59,21 @@ export function SwapWidget() {
       (b) => b.token.address.toLowerCase() === tokenAddress.toLowerCase(),
     );
   };
+
+  // Handle network change and reset tokens
+  const handleNetworkChange = useCallback((newNetwork: SupportedNetwork) => {
+    performanceTracker.measureSync(
+      PERF_OPERATIONS.NETWORK_SWITCH,
+      () => {
+        setNetwork(newNetwork);
+        // Reset tokens when network changes since they might not exist on the new network
+        setFromToken(null);
+        setToToken(null);
+        setFromAmount("");
+      },
+      { fromNetwork: network, toNetwork: newNetwork }
+    );
+  }, [network, setNetwork, setFromToken, setToToken, setFromAmount]);
 
   // Get swap price quote to check if swap is possible
   const parsedAmount = useMemo(() => {
@@ -95,39 +111,66 @@ export function SwapWidget() {
 
   const handleSwap = async () => {
     if (!canSwap) return;
-    setShowReviewModal(true);
+    performanceTracker.measureSync(
+      PERF_OPERATIONS.MODAL_OPEN,
+      () => setShowReviewModal(true),
+      { modal: 'review-transaction' }
+    );
   };
 
   const handleConfirmSwap = async () => {
     if (!fromToken || !toToken || !fromAmount) return;
 
-    try {
-      const swapQuote = await createQuote({
-        fromToken: fromToken.address,
-        toToken: toToken.address,
-        fromAmount: parseUnits(fromAmount, fromToken.decimals),
+    return performanceTracker.measureAsync(
+      PERF_OPERATIONS.FULL_SWAP_FLOW,
+      async () => {
+        const swapQuote = await createQuote({
+          fromToken: fromToken.address,
+          toToken: toToken.address,
+          fromAmount: parseUnits(fromAmount, fromToken.decimals),
+          network,
+          taker: evmAddress!,
+          slippageBps: Math.round(slippage * 100),
+        });
+
+        const result = await executeSwap({
+          swapQuote,
+          fromTokenAddress: fromToken.address,
+          network,
+        });
+
+        // Refresh balances after successful swap
+        await performanceTracker.measureAsync(
+          PERF_OPERATIONS.BALANCE_REFRESH,
+          () => refetchBalances(),
+          { network, reason: 'post-swap' }
+        );
+
+        // Log performance summary after successful swap
+        performanceTracker.logSummary();
+
+        return result;
+      },
+      {
+        fromToken: fromToken.symbol,
+        toToken: toToken.symbol,
+        fromAmount,
         network,
-        taker: evmAddress!,
-        slippageBps: Math.round(slippage * 100),
-      });
-
-      const result = await executeSwap({
-        swapQuote,
-        fromTokenAddress: fromToken.address,
-        network,
-      });
-
-      await refetchBalances();
-
-      return result;
-    } catch (error: any) {
+        slippage,
+      }
+    ).catch((error: any) => {
       console.error("Swap failed:", error);
+      performanceTracker.logSummary(); // Log summary even on failure
       throw error;
-    }
+    });
   };
 
   const handleConnectWallet = () => {
-    setShowConnectModal(true);
+    performanceTracker.measureSync(
+      PERF_OPERATIONS.MODAL_OPEN,
+      () => setShowConnectModal(true),
+      { modal: 'connect-wallet' }
+    );
   };
 
   // Check for insufficient balance
@@ -178,13 +221,20 @@ export function SwapWidget() {
           label="You're paying"
           token={fromToken}
           amount={fromAmount}
-          onTokenSelect={setFromToken}
+          onTokenSelect={(token) => {
+            performanceTracker.measureSync(
+              PERF_OPERATIONS.TOKEN_SELECTION,
+              () => setFromToken(token),
+              { tokenSymbol: token.symbol, tokenType: 'from', network }
+            );
+          }}
           onAmountChange={setFromAmount}
           balance={fromToken ? getTokenBalance(fromToken.address) : null}
           onMaxClick={handleMaxClick}
           network={network as SupportedNetwork}
           excludeToken={toToken}
           hasError={hasInsufficientBalance}
+          onNetworkChange={handleNetworkChange}
         />
 
         {/* Separator line with swap button */}
@@ -211,11 +261,18 @@ export function SwapWidget() {
                 ).toFixed(6)
               : ""
           }
-          onTokenSelect={setToToken}
+          onTokenSelect={(token) => {
+            performanceTracker.measureSync(
+              PERF_OPERATIONS.TOKEN_SELECTION,
+              () => setToToken(token),
+              { tokenSymbol: token.symbol, tokenType: 'to', network }
+            );
+          }}
           balance={toToken ? getTokenBalance(toToken.address) : null}
           readOnly={true}
           network={network as SupportedNetwork}
           excludeToken={fromToken}
+          onNetworkChange={handleNetworkChange}
         />
       </div>
 

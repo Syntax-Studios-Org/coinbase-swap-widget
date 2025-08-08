@@ -34,20 +34,20 @@ export const BASE_CHAIN = {
   },
 } as const;
 
-export const TRANSACTION_CONFIG = {
-  confirmationTimeout: 60000, // 60 seconds
+export const ETHEREUM_CHAIN = {
+  id: 1,
+  name: "Ethereum",
+  network: "mainnet",
+  nativeCurrency: { name: "Ether", symbol: "ETH", decimals: 18 },
+  rpcUrls: {
+    default: { http: ["https://eth.llamarpc.com"] },
+    public: { http: ["https://eth.llamarpc.com"] },
+  },
 } as const;
 
-// Onramp Configuration
-export const ONRAMP_CONFIG = {
-  baseUrl: "https://pay.coinbase.com/buy/select-asset",
-  defaultNetwork: "base",
-  defaultAsset: "USDC",
-  defaultFiatCurrency: "USD",
-  defaultPaymentMethod: "CARD",
-  minAmount: 1, // Minimum $1 USD
-  maxAmount: 500, // Maximum $500 USD for guest checkout
-  sessionTokenExpiry: 120, // 2 minutes
+
+export const TRANSACTION_CONFIG = {
+  confirmationTimeout: 60000, // 60 seconds
 } as const;
 
 export const NETWORKS: Record<
@@ -58,5 +58,10 @@ export const NETWORKS: Record<
     name: "Base",
     logoUrl: "/icons/base.svg",
     explorerUrl: "https://basescan.org",
+  },
+  Ethereum: {
+    name: "Ethereum",
+    logoUrl: "/icons/eth.svg",
+    explorerUrl: "https://etherscan.io",
   },
 } as const;

@@ -16,6 +16,7 @@ interface SwapInputProps {
   network: SupportedNetwork;
   excludeToken?: Token | null;
   hasError?: boolean;
+  onNetworkChange?: (network: SupportedNetwork) => void;
 }
 
 export function SwapInput({
@@ -29,7 +30,8 @@ export function SwapInput({
   readOnly = false,
   network,
   excludeToken,
-  hasError = false
+  hasError = false,
+  onNetworkChange
 }: SwapInputProps) {
   return (
     <div className={`p-4 bg-[#141519] rounded-2xl ${hasError ? 'border border-[#DF6A70]' : ''}`}>
@@ -82,6 +84,7 @@ export function SwapInput({
           network={network}
           label="token"
           excludeToken={excludeToken}
+          onNetworkChange={onNetworkChange}
         />
       </div>
     </div>

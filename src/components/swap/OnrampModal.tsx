@@ -52,7 +52,7 @@ export function OnrampModal({ isOpen, onClose }: OnrampModalProps) {
       });
 
       if (sessionUrl) {
-        window.open(sessionUrl, "_blank");
+        window.open(sessionUrl, "_self");
         onClose();
       }
     } catch (error) {
