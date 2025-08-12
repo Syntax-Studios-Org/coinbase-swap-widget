@@ -20,6 +20,7 @@ import type { SupportedNetwork } from "@/constants/tokens";
 import Image from "next/image";
 import { OnrampButton } from "./OnrampButton";
 import { getTokenDecimals, getTokenSymbol } from "@/utils/tokens";
+import { SlippageSelectorDropdown } from "./SlippageSelectorDropdown";
 
 export function SwapWidget() {
   const {
@@ -60,13 +61,16 @@ export function SwapWidget() {
   };
 
   // Handle network change and reset tokens
-  const handleNetworkChange = useCallback((newNetwork: SupportedNetwork) => {
-    setNetwork(newNetwork);
-    // Reset tokens when network changes since they might not exist on the new network
-    setFromToken(null);
-    setToToken(null);
-    setFromAmount("");
-  }, [setNetwork, setFromToken, setToToken, setFromAmount]);
+  const handleNetworkChange = useCallback(
+    (newNetwork: SupportedNetwork) => {
+      setNetwork(newNetwork);
+      // Reset tokens when network changes since they might not exist on the new network
+      setFromToken(null);
+      setToToken(null);
+      setFromAmount("");
+    },
+    [setNetwork, setFromToken, setToToken, setFromAmount],
+  );
 
   // Get swap price quote to check if swap is possible
   const parsedAmount = useMemo(() => {
@@ -177,7 +181,13 @@ export function SwapWidget() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-white text-xl font-medium">Swap</h1>
         {isSignedIn && (
-          <UserDropdown slippage={slippage} onSlippageChange={setSlippage} />
+          <div className="flex items-center space-x-2">
+            <UserDropdown />
+            <SlippageSelectorDropdown
+              slippage={slippage}
+              onSlippageChange={setSlippage}
+            />
+          </div>
         )}
       </div>
 
