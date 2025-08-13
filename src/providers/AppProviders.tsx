@@ -2,17 +2,14 @@
 
 import { CDPHooksProvider } from "@coinbase/cdp-hooks";
 import { QueryProvider } from "./QueryProvider";
+import { clientEnv } from "@/config/client.env";
 
 interface AppProvidersProps {
   children: React.ReactNode;
 }
 
 export function AppProviders({ children }: AppProvidersProps) {
-  const projectId = process.env.NEXT_PUBLIC_CDP_PROJECT_ID;
-
-  if (!projectId) {
-    throw new Error("NEXT_PUBLIC_CDP_PROJECT_ID is required");
-  }
+  const projectId = clientEnv.CDP_PROJECT_ID;
 
   return (
     <QueryProvider>

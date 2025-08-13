@@ -5,6 +5,7 @@ import {
   SessionTokenResponse,
 } from "@/types/onramp";
 import type { Address } from "viem";
+import { clientEnv } from "@/config/client.env";
 
 export class OnrampService {
   private static readonly COINBASE_PAY_BASE_URL =
@@ -136,7 +137,7 @@ export class OnrampService {
         defaultAsset: cryptoAsset,
         defaultNetwork: network,
         destinationAddress,
-        redirectUrl: process.env.NEXT_PUBLIC_REDIRECT_URL,
+        redirectUrl: clientEnv.REDIRECT_URL,
       });
 
       return onrampUrl;

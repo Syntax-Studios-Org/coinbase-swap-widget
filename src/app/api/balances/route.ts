@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CdpClient } from "@coinbase/cdp-sdk";
 import type { Address } from "viem";
+import { serverEnv } from "@/config/server.env";
 
 interface BalancesRequest {
   address: Address;
@@ -21,9 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Initialize CDP client
-    const apiKeyId = process.env.CDP_API_KEY_ID;
-    const apiKeySecret = process.env.CDP_API_KEY_SECRET;
-    const walletSecret = process.env.CDP_WALLET_SECRET;
+    const { CDP_API_KEY_ID: apiKeyId, CDP_API_KEY_SECRET: apiKeySecret, CDP_WALLET_SECRET: walletSecret } = serverEnv;
 
     if (!apiKeyId || !apiKeySecret || !walletSecret) {
       return NextResponse.json(

@@ -8,12 +8,7 @@ import { SwapInput } from "./SwapInput";
 import { ReviewTransactionModal } from "./ReviewTransactionModal";
 import { ConnectWalletModal } from "../auth/ConnectWalletModal";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
-import {
-  useSwapState,
-  useCreateSwapQuote,
-  useSwapPrice,
-} from "@/hooks/useSwap";
-import { useSwapExecution } from "@/hooks/useSwapExecution";
+import { useSwap } from "@/hooks/useSwap";
 import { useEvmAddress, useIsSignedIn } from "@coinbase/cdp-hooks";
 import { SUPPORTED_NETWORKS } from "@/constants/tokens";
 import type { SupportedNetwork } from "@/constants/tokens";
@@ -24,6 +19,7 @@ import { SlippageSelectorDropdown } from "./SlippageSelectorDropdown";
 
 export function SwapWidget() {
   const {
+    // State
     fromToken,
     toToken,
     fromAmount,
@@ -33,7 +29,17 @@ export function SwapWidget() {
     setFromAmount,
     setNetwork,
     swapTokens,
-  } = useSwapState();
+    // Price data
+    priceData,
+    isPriceLoading,
+    // Quote creation
+    createQuote,
+    isQuoteLoading,
+    // Execution
+    executeSwap,
+    isExecutionLoading,
+  } = useSwap();
+
   const [slippage, setSlippage] = useState(1.0); // Slippage tolerance: max acceptable price movement %
   const [showTradeDetails, setShowTradeDetails] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -41,9 +47,6 @@ export function SwapWidget() {
 
   const isSignedIn = useIsSignedIn();
   const evmAddress = useEvmAddress();
-  const { createQuote, isLoading: isCreateSwapQuoteLoading } =
-    useCreateSwapQuote();
-  const { executeSwap, isLoading: isExecuteSwapLoading } = useSwapExecution();
 
   const tokens = useMemo(() => {
     const supportedNetwork = SUPPORTED_NETWORKS[network as SupportedNetwork];
@@ -84,17 +87,8 @@ export function SwapWidget() {
     }
   }, [fromToken, fromAmount]);
 
-  const {
-    data: quote,
-    isLoading: isLoadingQuote,
-    error: quoteError,
-  } = useSwapPrice(
-    fromToken,
-    toToken,
-    parsedAmount,
-    network,
-    Boolean(fromToken && toToken && fromAmount),
-  );
+  const quote = priceData;
+  const isLoadingQuote = isPriceLoading;
 
   const handleMaxClick = () => {
     if (!fromToken) return;
@@ -148,7 +142,7 @@ export function SwapWidget() {
   const isValidAmount =
     fromAmount && !isNaN(Number(fromAmount)) && Number(fromAmount) > 0;
 
-  const isLoading = isCreateSwapQuoteLoading || isExecuteSwapLoading;
+  const isLoading = isQuoteLoading || isExecutionLoading;
 
   const canSwap = Boolean(
     isSignedIn &&

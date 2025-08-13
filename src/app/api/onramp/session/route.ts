@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateJwt } from '@coinbase/cdp-sdk/auth';
 import { SessionTokenRequest, SessionTokenResponse } from '@/types/onramp';
+import { serverEnv } from '@/config/server.env';
 
 /**
  * Generates a JWT token for CDP API authentication using the CDP SDK
@@ -31,8 +32,7 @@ async function generateJWT(keyName: string, keySecret: string): Promise<string> 
 export async function POST(request: NextRequest) {
   try {
     // Get API credentials from environment variables
-    const keyName = process.env.CDP_API_KEY_ID;
-    const keySecret = process.env.CDP_API_KEY_SECRET;
+    const { CDP_API_KEY_ID: keyName, CDP_API_KEY_SECRET: keySecret } = serverEnv;
 
     if (!keyName || !keySecret) {
       console.error('Missing CDP API credentials');
