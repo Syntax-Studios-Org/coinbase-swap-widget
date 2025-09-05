@@ -85,18 +85,6 @@ export function SwapWidget() {
     [setNetwork, setFromToken, setToToken, setFromAmount],
   );
 
-  // // Get swap price quote to check if swap is possible
-  // const parsedAmount = useMemo(() => {
-  //   try {
-  //     return fromToken && fromAmount && !isNaN(Number(fromAmount))
-  //       ? parseUnits(fromAmount, fromToken.decimals)
-  //       : BigInt(0);
-  //   } catch (error) {
-  //     console.error("Error parsing amount:", error);
-  //     return BigInt(0);
-  //   }
-  // }, [fromToken, fromAmount]);
-
   const quote = priceData;
   const isLoadingQuote = isPriceLoading;
 
