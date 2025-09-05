@@ -9,6 +9,7 @@ import { ReviewTransactionModal } from "./ReviewTransactionModal";
 import { ConnectWalletModal } from "../auth/ConnectWalletModal";
 import { useTokenBalances } from "@/hooks/useTokenBalances";
 import { useSwap } from "@/hooks/useSwap";
+import { useSend } from "@/hooks/useSend";
 import { useEvmAddress, useIsSignedIn } from "@coinbase/cdp-hooks";
 import { SUPPORTED_NETWORKS } from "@/constants/tokens";
 import type { SupportedNetwork } from "@/constants/tokens";
@@ -40,6 +41,15 @@ export function SwapWidget() {
     isExecutionLoading,
   } = useSwap();
 
+  const {
+    // Send execution
+    executeSend,
+    isExecutionLoading: isSendLoading,
+    isValidAddress,
+  } = useSend();
+
+  const [activeTab, setActiveTab] = useState<"swap" | "send">("swap");
+  const [toAddress, setToAddress] = useState("");
   const [slippage, setSlippage] = useState(1.0); // Slippage tolerance: max acceptable price movement %
   const [showTradeDetails, setShowTradeDetails] = useState(false);
   const [showConnectModal, setShowConnectModal] = useState(false);
@@ -75,17 +85,17 @@ export function SwapWidget() {
     [setNetwork, setFromToken, setToToken, setFromAmount],
   );
 
-  // Get swap price quote to check if swap is possible
-  const parsedAmount = useMemo(() => {
-    try {
-      return fromToken && fromAmount && !isNaN(Number(fromAmount))
-        ? parseUnits(fromAmount, fromToken.decimals)
-        : BigInt(0);
-    } catch (error) {
-      console.error("Error parsing amount:", error);
-      return BigInt(0);
-    }
-  }, [fromToken, fromAmount]);
+  // // Get swap price quote to check if swap is possible
+  // const parsedAmount = useMemo(() => {
+  //   try {
+  //     return fromToken && fromAmount && !isNaN(Number(fromAmount))
+  //       ? parseUnits(fromAmount, fromToken.decimals)
+  //       : BigInt(0);
+  //   } catch (error) {
+  //     console.error("Error parsing amount:", error);
+  //     return BigInt(0);
+  //   }
+  // }, [fromToken, fromAmount]);
 
   const quote = priceData;
   const isLoadingQuote = isPriceLoading;
@@ -106,29 +116,45 @@ export function SwapWidget() {
   };
 
   const handleConfirmSwap = async () => {
-    if (!fromToken || !toToken || !fromAmount) return;
+    if (!fromToken || !fromAmount) return;
 
     try {
-      const swapQuote = await createQuote({
-        fromToken: fromToken.address,
-        toToken: toToken.address,
-        fromAmount: parseUnits(fromAmount, fromToken.decimals),
-        network,
-        taker: evmAddress!,
-        slippageBps: Math.round(slippage * 100),
-      });
+      if (activeTab === "swap") {
+        if (!toToken) return;
+        
+        const swapQuote = await createQuote({
+          fromToken: fromToken.address,
+          toToken: toToken.address,
+          fromAmount: parseUnits(fromAmount, fromToken.decimals),
+          network,
+          taker: evmAddress!,
+          slippageBps: Math.round(slippage * 100),
+        });
 
-      const result = await executeSwap({
-        swapQuote,
-        fromTokenAddress: fromToken.address,
-        network,
-      });
+        const result = await executeSwap({
+          swapQuote,
+          fromTokenAddress: fromToken.address,
+          network,
+        });
 
-      await refetchBalances();
+        await refetchBalances();
+        return result;
+      } else {
+        // Send mode
+        if (!toAddress) return;
+        
+        const result = await executeSend({
+          token: fromToken,
+          amount: fromAmount,
+          toAddress,
+          network,
+        });
 
-      return result;
+        await refetchBalances();
+        return result;
+      }
     } catch (error: any) {
-      console.error("Swap failed:", error);
+      console.error(`${activeTab} failed:`, error);
       throw error;
     }
   };
@@ -137,34 +163,62 @@ export function SwapWidget() {
     setShowConnectModal(true);
   };
 
-  // Check for insufficient balance
-  const hasInsufficientBalance = Boolean(quote?.issues?.balance);
+  // Validate amount first
   const isValidAmount =
     fromAmount && !isNaN(Number(fromAmount)) && Number(fromAmount) > 0;
 
-  const isLoading = isQuoteLoading || isExecutionLoading;
+  // Check for insufficient balance
+  const hasInsufficientBalance = useMemo(() => {
+    if (activeTab === "swap") {
+      return Boolean(quote?.issues?.balance);
+    } else {
+      // Send mode - check if user has enough balance
+      if (!fromToken || !fromAmount || !isValidAmount) return false;
+      
+      const balance = getTokenBalance(fromToken.address);
+      if (!balance) return false;
+      
+      try {
+        const amountBigInt = parseUnits(fromAmount, fromToken.decimals);
+        return amountBigInt > balance.balance;
+      } catch (error) {
+        return false;
+      }
+    }
+  }, [activeTab, quote, fromToken, fromAmount, getTokenBalance, isValidAmount]);
+  const isValidToAddress = activeTab === "send" ? isValidAddress(toAddress) : true;
+
+  const isLoading = isQuoteLoading || isExecutionLoading || isSendLoading;
 
   const canSwap = Boolean(
     isSignedIn &&
       fromToken &&
-      toToken &&
+      (activeTab === "swap" ? toToken : true) &&
       isValidAmount &&
+      isValidToAddress &&
       !hasInsufficientBalance &&
-      quote &&
-      !isLoadingQuote,
+      (activeTab === "swap" ? quote && !isLoadingQuote : true),
   );
 
   // Determine button text and state
   const getButtonState = () => {
     if (!isSignedIn) return { text: "Connect Wallet", disabled: false };
-    if (!fromToken || !toToken)
+    if (!fromToken) return { text: "Select token", disabled: true };
+    if (activeTab === "swap" && !toToken)
       return { text: "Select tokens", disabled: true };
     if (!isValidAmount) return { text: "Enter amount", disabled: true };
+    if (activeTab === "send" && !isValidToAddress)
+      return { text: "Enter valid address", disabled: true };
     if (hasInsufficientBalance)
       return { text: "Insufficient balance", disabled: true };
-    if (isLoadingQuote) return { text: "Getting quote...", disabled: true };
-    if (isLoading) return { text: "Swapping...", disabled: true };
-    return { text: "Swap", disabled: false };
+    if (activeTab === "swap" && isLoadingQuote)
+      return { text: "Getting quote...", disabled: true };
+    if (isLoading)
+      return {
+        text: activeTab === "swap" ? "Swapping..." : "Sending...",
+        disabled: true,
+      };
+    return { text: activeTab === "swap" ? "Swap" : "Send", disabled: false };
   };
 
   const buttonState = getButtonState();
@@ -173,7 +227,28 @@ export function SwapWidget() {
     <div className="w-full max-w-[520px]">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-white text-xl font-medium">Swap</h1>
+        <div className="flex items-center bg-[#141519] rounded-full p-1">
+          <button
+            onClick={() => setActiveTab("swap")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              activeTab === "swap"
+                ? "bg-white text-black"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            Swap
+          </button>
+          <button
+            onClick={() => setActiveTab("send")}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+              activeTab === "send"
+                ? "bg-white text-black"
+                : "text-white/60 hover:text-white"
+            }`}
+          >
+            Send
+          </button>
+        </div>
         {isSignedIn && (
           <div className="flex items-center space-x-2">
             <UserDropdown />
@@ -186,9 +261,9 @@ export function SwapWidget() {
       </div>
 
       <div className="rounded-2xl relative overflow-hidden flex flex-col">
-        {/* You're paying section */}
+        {/* First section - From/Sending */}
         <SwapInput
-          label="You're paying"
+          label={activeTab === "swap" ? "You're paying" : "Sending"}
           token={fromToken}
           amount={fromAmount}
           onTokenSelect={setFromToken}
@@ -196,7 +271,7 @@ export function SwapWidget() {
           balance={fromToken ? getTokenBalance(fromToken.address) : null}
           onMaxClick={handleMaxClick}
           network={network as SupportedNetwork}
-          excludeToken={toToken}
+          excludeToken={activeTab === "swap" ? toToken : null}
           hasError={hasInsufficientBalance}
           onNetworkChange={handleNetworkChange}
         />
@@ -205,7 +280,7 @@ export function SwapWidget() {
         <div className="relative bg-[#0A0B0D] h-[3px]">
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
             <button
-              onClick={swapTokens}
+              onClick={activeTab === "swap" ? swapTokens : undefined}
               className="bg-[#141519] border-2 border-[#0A0B0D] rounded-md p-2 hover:bg-[#1A1B1F] transition-colors"
             >
               <Image src="/swap.svg" alt="Swap" width={20} height={20} />
@@ -213,25 +288,42 @@ export function SwapWidget() {
           </div>
         </div>
 
-        {/* To receive section */}
-        <SwapInput
-          label="To receive"
-          token={toToken}
-          amount={
-            quote
-              ? (
-                  parseFloat(quote.toAmount.toString()) /
-                  Math.pow(10, toToken?.decimals || 18)
-                ).toFixed(6)
-              : ""
-          }
-          onTokenSelect={setToToken}
-          balance={toToken ? getTokenBalance(toToken.address) : null}
-          readOnly={true}
-          network={network as SupportedNetwork}
-          excludeToken={fromToken}
-          onNetworkChange={handleNetworkChange}
-        />
+        {/* Second section - To receive or To address */}
+        {activeTab === "swap" ? (
+          <SwapInput
+            label="To receive"
+            token={toToken}
+            amount={
+              quote
+                ? (
+                    parseFloat(quote.toAmount.toString()) /
+                    Math.pow(10, toToken?.decimals || 18)
+                  ).toFixed(6)
+                : ""
+            }
+            onTokenSelect={setToToken}
+            balance={toToken ? getTokenBalance(toToken.address) : null}
+            readOnly={true}
+            network={network as SupportedNetwork}
+            excludeToken={fromToken}
+            onNetworkChange={handleNetworkChange}
+          />
+        ) : (
+          <div className="p-4 bg-[#141519] rounded-2xl">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-white/60 text-sm tracking-tight">
+                To address
+              </span>
+            </div>
+            <input
+              type="text"
+              placeholder="0x..."
+              value={toAddress}
+              onChange={(e) => setToAddress(e.target.value)}
+              className="coinbase-sans bg-transparent placeholder-white/40 border-none outline-none w-full text-2xl font-medium text-white"
+            />
+          </div>
+        )}
       </div>
 
       {/* Swap Button */}
@@ -293,18 +385,20 @@ export function SwapWidget() {
       />
 
       {/* Review Transaction Modal */}
-      {quote && fromToken && toToken && (
+      {fromToken && (activeTab === "swap" ? quote && toToken : toAddress) && (
         <ReviewTransactionModal
           isOpen={showReviewModal}
           onClose={() => setShowReviewModal(false)}
           onConfirm={handleConfirmSwap}
           fromToken={fromToken}
-          toToken={toToken}
+          toToken={toToken || undefined}
           fromAmount={fromAmount}
-          quote={quote}
+          quote={quote || undefined}
           slippage={slippage}
           isLoading={isLoading}
           network={network}
+          mode={activeTab}
+          toAddress={toAddress}
         />
       )}
     </div>
