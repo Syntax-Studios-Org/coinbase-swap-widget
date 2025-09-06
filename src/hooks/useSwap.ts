@@ -38,6 +38,8 @@ const getChainId = (network: string): number => {
   switch (network.toLowerCase()) {
     case "base":
       return 8453;
+    case "mainnet":
+      return 1;
     default:
       return 8453;
   }

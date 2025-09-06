@@ -19,12 +19,14 @@ interface ReviewTransactionModalProps {
   onClose: () => void;
   onConfirm: () => Promise<any>;
   fromToken: Token;
-  toToken: Token;
+  toToken?: Token;
   fromAmount: string;
-  quote: SwapQuote;
+  quote?: SwapQuote;
   slippage: number;
   isLoading: boolean;
   network: string;
+  mode: "swap" | "send";
+  toAddress?: string;
 }
 
 type TransactionState = "review" | "submitted" | "success" | "failed";
@@ -40,11 +42,13 @@ export function ReviewTransactionModal({
   slippage,
   isLoading,
   network,
+  mode,
+  toAddress,
 }: ReviewTransactionModalProps) {
   const [txState, setTxState] = useState<TransactionState>("review");
   const [txHash, setTxHash] = useState<string>("");
 
-  const toAmount = quote
+  const toAmount = quote && toToken
     ? (
         parseFloat(quote.toAmount.toString()) / Math.pow(10, toToken.decimals)
       ).toFixed(6)
@@ -119,29 +123,46 @@ export function ReviewTransactionModal({
               )}
             </div>
             <div className="text-white/60">→</div>
-            <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10">
-              {toToken.logoUrl ? (
-                <Image
-                  src={toToken.logoUrl}
-                  alt={toToken.symbol}
-                  className="rounded-full"
-                  width={32}
-                  height={32}
-                />
-              ) : (
-                <span className="text-white font-medium">
-                  {toToken.symbol.charAt(0)}
+            {mode === "swap" && toToken ? (
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10">
+                {toToken.logoUrl ? (
+                  <Image
+                    src={toToken.logoUrl}
+                    alt={toToken.symbol}
+                    className="rounded-full"
+                    width={32}
+                    height={32}
+                  />
+                ) : (
+                  <span className="text-white font-medium">
+                    {toToken.symbol.charAt(0)}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-white/10">
+                <span className="text-white font-medium text-xs">
+                  {toAddress ? toAddress.slice(0, 4) : "0x"}
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
-          {/* Swap Details - Always visible */}
+          {/* Transaction Details - Always visible */}
           <div className="text-center mb-4">
-            <p className="text-white text-lg">You're swapping</p>
-            <p className="text-white text-xl font-medium">
-              {fromAmount} {fromToken.symbol} → {toAmount} {toToken.symbol}
+            <p className="text-white text-lg">
+              {mode === "swap" ? "You're swapping" : "You're sending"}
             </p>
+            <p className="text-white text-xl font-medium">
+              {mode === "swap" && toToken
+                ? `${fromAmount} ${fromToken.symbol} → ${toAmount} ${toToken.symbol}`
+                : `${fromAmount} ${fromToken.symbol}`}
+            </p>
+            {mode === "send" && toAddress && (
+              <p className="text-white/60 text-sm mt-1">
+                To: {toAddress.slice(0, 6)}...{toAddress.slice(-4)}
+              </p>
+            )}
             <p className="text-white/60 text-sm mt-2">
               Transfer usually takes &lt;30s
             </p>
@@ -162,34 +183,36 @@ export function ReviewTransactionModal({
           {txState === "review" && (
             <>
               {/* Trade Details */}
-              <div className="bg-[#1A1B1F] rounded-xl p-4 mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-white font-medium">Trade details</h3>
-                  <div className="text-white/60">⌄</div>
-                </div>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between text-white/60">
-                    <span>Slippage tolerance</span>
-                    <span>{slippage}%</span>
+              {mode === "swap" && (
+                <div className="bg-[#1A1B1F] rounded-xl p-4 mb-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-white font-medium">Trade details</h3>
+                    <div className="text-white/60">⌄</div>
                   </div>
-                  {quote.fees?.protocolFee && (
+                  <div className="space-y-2 text-sm">
                     <div className="flex justify-between text-white/60">
-                      <div className="flex items-center gap-1">
-                        <span>Transaction fee</span>
-                      </div>
-                      <span className="text-blue-400">
-                        {formatUnits(
-                          BigInt(quote.fees?.protocolFee.amount || "0"),
-                          getTokenDecimals(
-                            quote.fees.protocolFee.token,
-                            network,
-                          ),
-                        )} {getTokenSymbol(quote.fees?.protocolFee.token, network)}
-                      </span>
+                      <span>Slippage tolerance</span>
+                      <span>{slippage}%</span>
                     </div>
-                  )}
+                    {quote?.fees?.protocolFee && (
+                      <div className="flex justify-between text-white/60">
+                        <div className="flex items-center gap-1">
+                          <span>Transaction fee</span>
+                        </div>
+                        <span className="text-blue-400">
+                          {formatUnits(
+                            BigInt(quote.fees?.protocolFee.amount || "0"),
+                            getTokenDecimals(
+                              quote.fees.protocolFee.token,
+                              network,
+                            ),
+                          )} {getTokenSymbol(quote.fees?.protocolFee.token, network)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Confirm Button */}
               <Button
@@ -198,7 +221,7 @@ export function ReviewTransactionModal({
                 isLoading={isLoading}
                 className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium rounded-full"
               >
-                Confirm swap
+                {mode === "swap" ? "Confirm swap" : "Confirm send"}
               </Button>
             </>
           )}
@@ -213,7 +236,7 @@ export function ReviewTransactionModal({
                       Transaction submitted
                     </h3>
                     <p className="text-white/60 text-sm">
-                      Your swap is being processed
+                      Your {mode} is being processed
                     </p>
                   </div>
                   <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -232,7 +255,7 @@ export function ReviewTransactionModal({
                       Transaction Completed
                     </h3>
                     <p className="text-white/60 text-sm">
-                      Your swap has been completed
+                      Your {mode} has been completed
                     </p>
                   </div>
                   <div><Image src="/check-tick-double.svg" alt="Success" width={24} height={24} /></div>
