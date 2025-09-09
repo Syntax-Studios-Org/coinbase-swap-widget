@@ -11,6 +11,7 @@ import {
 import { Button, Input } from "@/components/ui";
 import { useSignIn, useVerifyOTP } from "@/hooks/useAuth";
 import { validateEmail, validateOTP, formatError } from "@/utils/validation";
+import Link from "next/link";
 
 interface ConnectWalletModalProps {
   isOpen: boolean;
@@ -112,6 +113,16 @@ export function ConnectWalletModal({
                 disabled={isSigningIn}
                 className="bg-[#141519] h-14 border-white/10 text-white placeholder-white/40"
               />
+              <p className="text-xs text-[#8B919D] tracking-tighter">
+                We will collect your email for authentication.{" "}
+                <Link
+                  href={"https://www.coinbase.com/legal/privacy"}
+                  target="_blank"
+                  className="text-white font-medium"
+                >
+                  See our Privacy Policy
+                </Link>
+              </p>
               <Button
                 onClick={handleSignIn}
                 isLoading={isSigningIn}
@@ -177,13 +188,13 @@ export function ConnectWalletModal({
             <li className="flex items-center gap-2">
               <span>
                 <Image
-                  src={"/red-cross.svg"}
+                  src={"/alert-yellow-triangle.svg"}
                   width={16}
                   height={16}
                   alt="eye"
                 />
               </span>
-              It cannot move funds without your permission
+              This executes real onchain transactions
             </li>
           </ul>
         </div>
