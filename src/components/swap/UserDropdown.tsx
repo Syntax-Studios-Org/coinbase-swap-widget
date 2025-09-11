@@ -1,23 +1,52 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
-import { useEvmAddress, useSignOut } from "@coinbase/cdp-hooks";
+import { ChevronDown, Copy, Download, LogOut, Check, Loader2 } from "lucide-react";
+import {
+  useEvmAddress,
+  useSignOut,
+  useExportEvmAccount,
+} from "@coinbase/cdp-hooks";
 import { truncateAddress } from "@/utils/format";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
 } from "@/components/ui/DropdownMenu";
-import Image from "next/image";
+import { useState } from "react";
 
 export function UserDropdown() {
   const evmAddress = useEvmAddress();
   const signOut = useSignOut();
+  const exportEvmAccount = useExportEvmAccount();
+
+  const [addressCopied, setAddressCopied] = useState(false);
+  const [privateKeyCopied, setPrivateKeyCopied] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const copyAddress = async () => {
-    if (evmAddress) {
+    if (evmAddress && !addressCopied) {
       await navigator.clipboard.writeText(evmAddress);
+      setAddressCopied(true);
+      setTimeout(() => setAddressCopied(false), 2000);
+    }
+  };
+
+  const exportPrivateKey = async () => {
+    if (evmAddress && !isExporting && !privateKeyCopied) {
+      try {
+        setIsExporting(true);
+        const { privateKey } = await exportEvmAccount({ evmAccount: evmAddress });
+        await navigator.clipboard.writeText(privateKey);
+        setPrivateKeyCopied(true);
+        setTimeout(() => setPrivateKeyCopied(false), 3000);
+      } catch (error) {
+        console.error("Failed to export private key:", error);
+      } finally {
+        setIsExporting(false);
+      }
     }
   };
 
@@ -44,20 +73,49 @@ export function UserDropdown() {
             <span className="text-sm text-white/80">
               {truncateAddress(evmAddress)}
             </span>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={copyAddress}
-                className="p-1 hover:bg-white/10 rounded"
-              >
-                <Image width={16} height={16} src="/copy.svg" alt="Copy" />
-              </button>
-              <button
-                onClick={signOut}
-                className="p-1 hover:bg-white/10 rounded"
-              >
-                <Image width={16} height={16} src="/logout.svg" alt="Logout" />
-              </button>
+            <button
+              onClick={copyAddress}
+              className="p-1 hover:bg-white/10 rounded"
+            >
+              <Copy className="w-4 h-4" />
+            </button>
+          </div>
+
+          {/* Copy Private Key */}
+          <DropdownMenuItem
+            onClick={exportPrivateKey}
+            disabled={isExporting || privateKeyCopied}
+            className="text-white hover:bg-white/10 focus:bg-white/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed p-0"
+            title="Copy your private key to clipboard - Keep it safe!"
+          >
+            <div className="flex items-center space-x-3 w-full p-2">
+              {isExporting ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : privateKeyCopied ? (
+                <Check className="w-4 h-4 text-green-400" />
+              ) : (
+                <Download className="w-4 h-4" />
+              )}
+              <span className="text-sm">
+                {isExporting
+                  ? "Exporting..."
+                  : privateKeyCopied
+                    ? "Private Key Copied!"
+                    : "Copy Private Key"
+                }
+              </span>
             </div>
+          </DropdownMenuItem>
+
+          {/* Sign Out */}
+          <div className="pt-2 border-t border-white/10">
+            <button
+              onClick={signOut}
+              className="flex items-center space-x-3 w-full p-2 text-red-400 hover:bg-red-500/10 rounded transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="text-sm">Sign Out</span>
+            </button>
           </div>
         </div>
       </DropdownMenuContent>
