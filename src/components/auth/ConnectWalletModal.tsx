@@ -113,14 +113,16 @@ export function ConnectWalletModal({
                 disabled={isSigningIn}
                 className="bg-[#141519] h-14 border-white/10 text-white placeholder-white/40"
               />
-              <p className="text-xs text-[#8B919D] tracking-tighter">
-                We will collect your email for authentication.{" "}
+              <p className="text-xs text-[#8B919D] tracking-tighter text-center">
+                This demo creates real onchain transactions. It uses email-based
+                authentication and will collect your email for authentication
+                purposes Learn more by visiting our{" "}
                 <Link
                   href={"https://www.coinbase.com/legal/privacy"}
                   target="_blank"
-                  className="text-white font-medium"
+                  className="text-white font-medium cursor-pointer"
                 >
-                  See our Privacy Policy
+                  privacy policy
                 </Link>
               </p>
               <Button
