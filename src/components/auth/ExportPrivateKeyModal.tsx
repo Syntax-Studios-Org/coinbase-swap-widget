@@ -16,7 +16,10 @@ interface ExportPrivateKeyModalProps {
   onClose: () => void;
 }
 
-export function ExportPrivateKeyModal({ isOpen, onClose }: ExportPrivateKeyModalProps) {
+export function ExportPrivateKeyModal({
+  isOpen,
+  onClose,
+}: ExportPrivateKeyModalProps) {
   const evmAddress = useEvmAddress();
   const exportEvmAccount = useExportEvmAccount();
 
@@ -31,7 +34,9 @@ export function ExportPrivateKeyModal({ isOpen, onClose }: ExportPrivateKeyModal
 
     try {
       setIsExporting(true);
-      const { privateKey: exportedKey } = await exportEvmAccount({ evmAccount: evmAddress });
+      const { privateKey: exportedKey } = await exportEvmAccount({
+        evmAccount: evmAddress,
+      });
       setPrivateKey(exportedKey);
       setHasExported(true);
     } catch (error) {
@@ -61,11 +66,6 @@ export function ExportPrivateKeyModal({ isOpen, onClose }: ExportPrivateKeyModal
     onClose();
   };
 
-  // Export private key when modal opens
-  if (isOpen && !hasExported && !isExporting) {
-    handleExportPrivateKey();
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="w-full max-w-md bg-[#141519] border border-[#292B30] text-white">
@@ -79,23 +79,21 @@ export function ExportPrivateKeyModal({ isOpen, onClose }: ExportPrivateKeyModal
           {/* Header Text */}
           <div className="text-center">
             <h3 className="text-white font-medium">Your private key</h3>
-            <p className="text-sm text-[#8B919D]">For your eyes only. Do not share.</p>
+            <p className="text-sm text-[#8B919D]">
+              For your eyes only. Do not share.
+            </p>
           </div>
 
           {/* Private Key Display */}
-          <div className="relative">
-            <div className="border border-[#292B30] rounded-lg p-4 bg-[#1A1B1F] relative">
-              <div className={`font-mono text-sm break-all ${!isKeyVisible ? 'blur-sm select-none' : ''}`}>
-                {isExporting ? (
-                  <div className="flex items-center justify-center py-4">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                  </div>
-                ) : (
-                  privateKey || "Loading..."
-                )}
-              </div>
+          {hasExported ? (
+            <div className="relative">
+              <div className="border border-[#292B30] rounded-lg p-4 bg-[#1A1B1F] relative">
+                <div
+                  className={`font-mono text-sm break-all ${!isKeyVisible ? "blur-sm select-none" : ""}`}
+                >
+                  {privateKey}
+                </div>
 
-              {hasExported && (
                 <button
                   onClick={() => setIsKeyVisible(!isKeyVisible)}
                   className="absolute bottom-3 right-3 p-1 hover:bg-white/10 rounded transition-colors"
@@ -106,27 +104,53 @@ export function ExportPrivateKeyModal({ isOpen, onClose }: ExportPrivateKeyModal
                     <EyeOff className="w-4 h-4 text-[#8B919D]" />
                   )}
                 </button>
-              )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="relative">
+              <div className="border border-[#292B30] rounded-lg p-4 bg-[#1A1B1F] relative">
+                <div className="font-mono text-sm break-all text-[#8B919D] text-center py-8">
+                    Click below to reveal your private key
+                </div>
+              </div>
+            </div>
+          )}
 
-          {/* Copy Button */}
-          <Button
-            onClick={handleCopyToClipboard}
-            disabled={!hasExported || !privateKey || isCopied}
-            className="w-full h-12 bg-white hover:bg-white/90 text-black rounded-full font-medium"
-          >
-            {isCopied ? (
-              <>
-                <Check className="w-4 h-4 mr-2" />
-                Copied to Clipboard
-              </>
-            ) : (
-              <>
-                Copy to Clipboard
-              </>
-            )}
-          </Button>
+          {/* Action Button */}
+          {!hasExported ? (
+            <Button
+              onClick={handleExportPrivateKey}
+              disabled={isExporting}
+              className="w-full h-12 bg-white hover:bg-white/90 text-black rounded-full font-medium"
+            >
+              {isExporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-black mr-2"></div>
+                  Revealing Private Key...
+                </>
+              ) : (
+                <>Reveal Private Key</>
+              )}
+            </Button>
+          ) : (
+            <Button
+              onClick={handleCopyToClipboard}
+              disabled={!privateKey || isCopied}
+              className="w-full h-12 bg-white hover:bg-white/90 text-black rounded-full font-medium"
+            >
+              {isCopied ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Copied to Clipboard
+                </>
+              ) : (
+                <>
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copy to Clipboard
+                </>
+              )}
+            </Button>
+          )}
 
           {/* Security Notice */}
           <div className="relative my-6 -mx-6">
