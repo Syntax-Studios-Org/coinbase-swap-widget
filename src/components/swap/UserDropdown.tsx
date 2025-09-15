@@ -1,10 +1,9 @@
 "use client";
 
-import { ChevronDown, Copy, Download, LogOut, Check, Loader2 } from "lucide-react";
+import { ChevronDown, Copy, Download, LogOut, Check } from "lucide-react";
 import {
   useEvmAddress,
   useSignOut,
-  useExportEvmAccount,
 } from "@coinbase/cdp-hooks";
 import { truncateAddress } from "@/utils/format";
 import {
@@ -12,19 +11,16 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuLabel,
 } from "@/components/ui/DropdownMenu";
+import { ExportPrivateKeyModal } from "@/components/auth/ExportPrivateKeyModal";
 import { useState } from "react";
 
 export function UserDropdown() {
   const evmAddress = useEvmAddress();
   const signOut = useSignOut();
-  const exportEvmAccount = useExportEvmAccount();
 
   const [addressCopied, setAddressCopied] = useState(false);
-  const [privateKeyCopied, setPrivateKeyCopied] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
   const copyAddress = async () => {
     if (evmAddress && !addressCopied) {
@@ -34,20 +30,8 @@ export function UserDropdown() {
     }
   };
 
-  const exportPrivateKey = async () => {
-    if (evmAddress && !isExporting && !privateKeyCopied) {
-      try {
-        setIsExporting(true);
-        const { privateKey } = await exportEvmAccount({ evmAccount: evmAddress });
-        await navigator.clipboard.writeText(privateKey);
-        setPrivateKeyCopied(true);
-        setTimeout(() => setPrivateKeyCopied(false), 3000);
-      } catch (error) {
-        console.error("Failed to export private key:", error);
-      } finally {
-        setIsExporting(false);
-      }
-    }
+  const openExportModal = () => {
+    setIsExportModalOpen(true);
   };
 
   if (!evmAddress) return null;
@@ -81,29 +65,15 @@ export function UserDropdown() {
             </button>
           </div>
 
-          {/* Copy Private Key */}
+          {/* Export Private Key */}
           <DropdownMenuItem
-            onClick={exportPrivateKey}
-            disabled={isExporting || privateKeyCopied}
-            className="text-white hover:bg-white/10 focus:bg-white/10 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed p-0"
-            title="Copy your private key to clipboard - Keep it safe!"
+            onClick={openExportModal}
+            className="text-white hover:bg-white/10 focus:bg-white/10 cursor-pointer p-0"
+            title="Export your private key - Keep it safe!"
           >
             <div className="flex items-center space-x-3 w-full p-2">
-              {isExporting ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : privateKeyCopied ? (
-                <Check className="w-4 h-4 text-green-400" />
-              ) : (
-                <Download className="w-4 h-4" />
-              )}
-              <span className="text-sm">
-                {isExporting
-                  ? "Exporting..."
-                  : privateKeyCopied
-                    ? "Private Key Copied!"
-                    : "Copy Private Key"
-                }
-              </span>
+              <Download className="w-4 h-4" />
+              <span className="text-sm">Export Private Key</span>
             </div>
           </DropdownMenuItem>
 
@@ -119,6 +89,11 @@ export function UserDropdown() {
           </div>
         </div>
       </DropdownMenuContent>
+
+      <ExportPrivateKeyModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+      />
     </DropdownMenu>
   );
 }
