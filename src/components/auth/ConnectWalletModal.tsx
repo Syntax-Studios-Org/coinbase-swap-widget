@@ -114,16 +114,13 @@ export function ConnectWalletModal({
                 className="bg-[#141519] h-14 border-white/10 text-white placeholder-white/40"
               />
               <p className="text-xs text-[#8B919D] tracking-tighter text-center">
-                This demo creates real onchain transactions. It uses email-based
-                authentication and will collect your email for authentication
-                purposes Learn more by visiting our{" "}
-                <Link
-                  href={"https://www.coinbase.com/legal/privacy"}
-                  target="_blank"
-                  className="text-white font-medium cursor-pointer"
-                >
-                  privacy policy
-                </Link>
+                By clicking "Request Verification Code," you agree that this
+                demo App is provided AS-IS and that your use is subject to
+                the CDP ToS, and you acknowledge that (1) your data is
+                governed by Coinbase's Privacy Policy; (2) onchain data is
+                public and immutable, and (3) your IP address may be used
+                for geofencing access control. We recommend only using
+                minimal funds to avoid potential loss.
               </p>
               <Button
                 onClick={handleSignIn}
