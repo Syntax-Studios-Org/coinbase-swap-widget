@@ -85,18 +85,6 @@ export function SwapWidget() {
     [setNetwork, setFromToken, setToToken, setFromAmount],
   );
 
-  // // Get swap price quote to check if swap is possible
-  // const parsedAmount = useMemo(() => {
-  //   try {
-  //     return fromToken && fromAmount && !isNaN(Number(fromAmount))
-  //       ? parseUnits(fromAmount, fromToken.decimals)
-  //       : BigInt(0);
-  //   } catch (error) {
-  //     console.error("Error parsing amount:", error);
-  //     return BigInt(0);
-  //   }
-  // }, [fromToken, fromAmount]);
-
   const quote = priceData;
   const isLoadingQuote = isPriceLoading;
 
@@ -121,7 +109,7 @@ export function SwapWidget() {
     try {
       if (activeTab === "swap") {
         if (!toToken) return;
-        
+
         const swapQuote = await createQuote({
           fromToken: fromToken.address,
           toToken: toToken.address,
@@ -142,7 +130,7 @@ export function SwapWidget() {
       } else {
         // Send mode
         if (!toAddress) return;
-        
+
         const result = await executeSend({
           token: fromToken,
           amount: fromAmount,
@@ -174,10 +162,10 @@ export function SwapWidget() {
     } else {
       // Send mode - check if user has enough balance
       if (!fromToken || !fromAmount || !isValidAmount) return false;
-      
+
       const balance = getTokenBalance(fromToken.address);
       if (!balance) return false;
-      
+
       try {
         const amountBigInt = parseUnits(fromAmount, fromToken.decimals);
         return amountBigInt > balance.balance;
@@ -388,7 +376,12 @@ export function SwapWidget() {
       {fromToken && (activeTab === "swap" ? quote && toToken : toAddress) && (
         <ReviewTransactionModal
           isOpen={showReviewModal}
-          onClose={() => setShowReviewModal(false)}
+          onClose={() => {
+            refetchBalances();
+            setFromAmount("");
+            setToAddress("")
+            setShowReviewModal(false);
+          }}
           onConfirm={handleConfirmSwap}
           fromToken={fromToken}
           toToken={toToken || undefined}
